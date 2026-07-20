@@ -7,9 +7,10 @@
 begin;
 
 -- Usuarios ---------------------------------------------------------------
-insert into public.users (role, email, full_name) values
-  ('admin',    'admin@perfectoutfit.co',    'Dilson Zapata (Admin)'),
-  ('employee', 'empleada@perfectoutfit.co', 'Laura Torres')
+-- ⚠️ Passwords en texto plano: SOLO desarrollo (ver migración 004)
+insert into public.users (role, email, full_name, password) values
+  ('admin',    'admin@perfectoutfit.co',    'Dilson Zapata (Admin)', 'admin123'),
+  ('employee', 'empleada@perfectoutfit.co', 'Laura Torres',          'empleado123')
 on conflict (email) do nothing;
 
 -- Clientes ---------------------------------------------------------------

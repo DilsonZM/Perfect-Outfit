@@ -18,6 +18,9 @@ create table if not exists public.users (
              check (role in ('admin', 'employee')),
   email      text not null unique,
   full_name  text not null,
+  -- ⚠️ SOLO DESARROLLO: password en texto plano para el login básico del MVP.
+  --    Antes de producción: migrar a Supabase Auth y eliminar esta columna.
+  password   text,
   created_at timestamptz not null default now()
 );
 

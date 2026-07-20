@@ -1,6 +1,41 @@
+import { useState } from 'react'
+import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Scissors } from 'lucide-react'
+import { useAuth } from '../context/useAuth'
+import { inputCls, labelCls } from '../lib/styles'
 
 export default function LoginPage() {
+  const { user, login } = useAuth()
+  const navigate = useNavigate()
+  const location = useLocation()
+
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  if (user) {
+    return <Navigate to="/" replace />
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    try {
+      const logged = await login(email, password)
+      if (!logged) {
+        setError('Correo o contraseña incorrectos.')
+      } else {
+        navigate(location.state?.from?.pathname ?? '/', { replace: true })
+      }
+    } catch {
+      setError('Error de conexión. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
@@ -12,40 +47,59 @@ export default function LoginPage() {
           <p className="text-sm text-slate-500">Inicia sesión para continuar</p>
         </div>
 
-        <form className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="mb-1 block text-sm font-medium text-slate-700">
+            <label htmlFor="email" className={labelCls}>
               Correo electrónico
             </label>
             <input
               id="email"
               type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="admin@perfectoutfit.co"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              data-testid="login-email"
+              className={inputCls}
             />
           </div>
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-medium text-slate-700">
+            <label htmlFor="password" className={labelCls}>
               Contraseña
             </label>
             <input
               id="password"
               type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+              data-testid="login-password"
+              className={inputCls}
             />
           </div>
+
+          {error && (
+            <p data-testid="login-error" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              {error}
+            </p>
+          )}
+
           <button
-            type="button"
-            className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+            type="submit"
+            disabled={loading}
+            data-testid="login-submit"
+            className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-60"
           >
-            Ingresar
+            {loading ? 'Ingresando…' : 'Ingresar'}
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-slate-400">
-          Autenticación disponible en el módulo de Seguridad (Fase 1)
-        </p>
+        <div className="mt-6 rounded-lg bg-slate-50 p-3 text-center text-xs text-slate-500">
+          <p className="font-medium">Credenciales de prueba</p>
+          <p className="mt-1">Admin: admin@perfectoutfit.co / admin123</p>
+          <p>Empleado: empleada@perfectoutfit.co / empleado123</p>
+        </div>
       </div>
     </div>
   )

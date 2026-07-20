@@ -1,13 +1,7 @@
 import { Plus, Shirt, Trash2 } from 'lucide-react'
 import { formatCOP } from '../../lib/format'
+import { GENDER_LABELS } from '../../lib/catalog'
 import { newLine } from './orderLine'
-
-const GENDER_LABELS = {
-  hombre: 'Hombre',
-  mujer: 'Mujer',
-  niño: 'Niño/a',
-  unisex: 'Unisex',
-}
 
 /** Infiere el item_type de la orden a partir de la jerarquía del catálogo */
 function inferItemType(item) {
