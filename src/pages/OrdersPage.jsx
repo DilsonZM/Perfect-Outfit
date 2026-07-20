@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, PlusCircle, XCircle } from 'lucide-react'
+import { CheckCircle2, Eye, PlusCircle, Printer, XCircle } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { formatCOP, formatDateTime, formatFolio } from '../lib/format'
 import StatusBadge from '../components/StatusBadge'
+import OrderDetailModal from '../components/orders/OrderDetailModal'
 import { confirmAction, showError } from '../lib/sweetalert'
 
 function displayStatus(order) {
@@ -17,13 +18,14 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState(null)
   const [error, setError] = useState(null)
   const [updating, setUpdating] = useState(null)
+  const [detailOrder, setDetailOrder] = useState(null)
 
   useEffect(() => {
     async function load() {
       const { data, error } = await supabase
         .from('service_orders')
         .select(
-          'id, folio, status, total_amount, discount, payment_method, delivery_date, return_date, clients(full_name), users(full_name)',
+          'id, folio, status, total_amount, discount, payment_method, delivery_date, return_date, created_at, clients(full_name, phone), users(full_name)',
         )
         .order('folio', { ascending: false })
       if (error) setError(error.message)
@@ -122,12 +124,16 @@ export default function OrdersPage() {
                 <th className="px-4 py-3 font-medium">Devolución</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
                 <th className="px-4 py-3 text-right font-medium">Total</th>
-                <th className="w-24 px-4 py-3 text-right font-medium">Acciones</th>
+                <th className="w-28 px-4 py-3 text-right font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {orders.map((order) => (
-                <tr key={order.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                <tr
+                  key={order.id}
+                  onClick={() => setDetailOrder(order)}
+                  className="cursor-pointer border-b border-slate-100 last:border-0 hover:bg-slate-50"
+                >
                   <td className="px-4 py-3 font-semibold text-indigo-600">
                     {formatFolio(order.folio)}
                   </td>
@@ -141,39 +147,66 @@ export default function OrdersPage() {
                   <td className="px-4 py-3 text-right font-medium text-slate-800">
                     {formatCOP(order.total_amount)}
                   </td>
-                  <td className="px-4 py-3">
-                    {showActions(order) ? (
-                      <div className="flex justify-end gap-1">
+                  <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex justify-end gap-1">
+                      <button
+                        onClick={() => setDetailOrder(order)}
+                        aria-label={`Ver detalle ${formatFolio(order.folio)}`}
+                        title="Ver detalle"
+                        className="rounded-lg p-1.5 text-indigo-500 transition-colors hover:bg-indigo-50"
+                      >
+                        <Eye className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                      {showActions(order) ? (
+                        <>
+                          <button
+                            onClick={() => handleStatusChange(order, 'completada')}
+                            disabled={updating === order.id}
+                            aria-label="Completar orden"
+                            title="Completar orden"
+                            className="rounded-lg p-1.5 text-green-600 transition-colors hover:bg-green-50 focus-visible:ring-2 focus-visible:ring-green-500 disabled:opacity-50"
+                          >
+                            <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(order, 'cancelada')}
+                            disabled={updating === order.id}
+                            aria-label="Cancelar orden"
+                            title="Cancelar orden"
+                            className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50"
+                          >
+                            <XCircle className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                        </>
+                      ) : (
                         <button
-                          onClick={() => handleStatusChange(order, 'completada')}
-                          disabled={updating === order.id}
-                          aria-label="Completar orden"
-                          title="Completar orden"
-                          data-testid="complete-order"
-                          className="rounded-lg p-1.5 text-green-600 transition-colors hover:bg-green-50 focus-visible:ring-2 focus-visible:ring-green-500 disabled:opacity-50"
+                          onClick={() => {
+                            const el = document.getElementById('order-invoice')
+                            if (el) {
+                              const w = window.open('', '_blank', 'width=800,height=600')
+                              w?.document.write(el.outerHTML)
+                              w?.document.close()
+                              w?.print()
+                            }
+                          }}
+                          aria-label={`Imprimir ${formatFolio(order.folio)}`}
+                          title="Imprimir"
+                          className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100"
                         >
-                          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                          <Printer className="h-4 w-4" aria-hidden="true" />
                         </button>
-                        <button
-                          onClick={() => handleStatusChange(order, 'cancelada')}
-                          disabled={updating === order.id}
-                          aria-label="Cancelar orden"
-                          title="Cancelar orden"
-                          data-testid="cancel-order"
-                          className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50"
-                        >
-                          <XCircle className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-slate-400">—</span>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {detailOrder && (
+        <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} />
       )}
     </div>
   )

@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+@media print {
+  aside,
+  nav,
+  button,
+  header,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  #root {
+    border: none !important;
+    width: 100% !important;
+  }
+
+  #order-invoice {
+    margin: 0 !important;
+    padding: 20px !important;
+    box-shadow: none !important;
+  }
+}

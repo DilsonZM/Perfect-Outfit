@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { CheckCircle2, ClipboardList, CreditCard, Flame, Truck } from 'lucide-react'
+import { ClipboardList, CreditCard, Flame, Truck } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { addDays, formatCOP, formatFolio, toLocalInputValue } from '../lib/format'
 import StatusBadge from '../components/StatusBadge'
 import ClientPanel from '../components/orders/ClientPanel'
 import ItemsEditor from '../components/orders/ItemsEditor'
+import OrderDetailModal from '../components/orders/OrderDetailModal'
 import { newLine } from '../components/orders/orderLine'
 
 const PAYMENT_METHODS = ['efectivo', 'tarjeta', 'transferencia']
@@ -168,7 +168,22 @@ export default function OrderNewPage() {
         .in('id', validLines.map((l) => l.inventoryItemId))
       if (inventoryError) throw inventoryError
 
-      setCreated({ folio: order.folio, total })
+      setCreated({
+        id: order.id,
+        folio: order.folio,
+        status: 'activa',
+        total_amount: total,
+        discount: discountAmount,
+        payment_method: paymentMethod,
+        delivery_date: new Date(deliveryDate).toISOString(),
+        return_date: new Date(returnDate).toISOString(),
+        created_at: new Date().toISOString(),
+        clients: {
+          full_name: clients.find((c) => c.id === clientId)?.full_name,
+          phone: clients.find((c) => c.id === clientId)?.phone,
+        },
+        users: { full_name: employees.find((u) => u.id === employeeId)?.full_name },
+      })
     } catch (err) {
       setError(err.message ?? 'Error inesperado al crear la orden.')
     } finally {
@@ -204,35 +219,7 @@ export default function OrderNewPage() {
   }
 
   if (created) {
-    return (
-      <div
-        data-testid="order-success"
-        className="mx-auto max-w-md rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm"
-      >
-        <CheckCircle2 className="mx-auto h-14 w-14 text-green-500" />
-        <h1 className="mt-4 text-2xl font-bold text-slate-900">Orden creada</h1>
-        <p className="mt-1 text-lg font-semibold text-indigo-600">{formatFolio(created.folio)}</p>
-        <p className="mt-2 text-sm text-slate-500">
-          Total cobrado: <span className="font-semibold text-slate-800">{formatCOP(created.total)}</span>
-          <br />
-          Las prendas quedaron marcadas como <strong>alquiladas</strong>.
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Link
-            to="/ordenes"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Ver órdenes
-          </Link>
-          <button
-            onClick={resetForm}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
-          >
-            Crear otra orden
-          </button>
-        </div>
-      </div>
-    )
+    return <OrderDetailModal order={created} onClose={resetForm} />
   }
 
   return (
