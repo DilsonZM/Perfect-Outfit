@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, PlusCircle, Search, Trash2 } from 'lucide-react'
+import { History, Pencil, PlusCircle, Search, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { calculateAge } from '../lib/format'
 import { btnPrimaryCls, inputCls } from '../lib/styles'
 import ClientFormModal from '../components/clients/ClientFormModal'
+import ClientOrdersModal from '../components/clients/ClientOrdersModal'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState(null)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState(null) // null | { client?: objeto }
+  const [historyClient, setHistoryClient] = useState(null)
 
   async function load() {
     const { data, error } = await supabase
@@ -75,23 +77,17 @@ export default function ClientsPage() {
         </div>
       </header>
 
-      {error && (
+      {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
           Error cargando clientes: {error}
         </div>
-      )}
-
-      {!error && clients === null && (
+      ) : clients === null ? (
         <p className="py-16 text-center text-sm text-slate-500">Cargando clientes…</p>
-      )}
-
-      {clients?.length === 0 && (
+      ) : clients.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
           Aún no hay clientes registrados.
         </div>
-      )}
-
-      {filtered.length > 0 && (
+      ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead>
@@ -101,7 +97,7 @@ export default function ClientsPage() {
                 <th className="px-4 py-3 font-medium">Contacto</th>
                 <th className="px-4 py-3 font-medium">Edad</th>
                 <th className="px-4 py-3 font-medium">Preferencias</th>
-                <th className="px-4 py-3 text-right font-medium">Acciones</th>
+                <th className="w-36 px-4 py-3 text-right font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -139,18 +135,29 @@ export default function ClientsPage() {
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
                         <button
-                          onClick={() => setModal({ client })}
-                          title="Editar"
-                          className="rounded-lg p-1.5 text-indigo-600 transition-colors hover:bg-indigo-50"
+                          onClick={() => setHistoryClient(client)}
+                          aria-label={`Ver historial de ${client.full_name}`}
+                          title="Historial de órdenes"
+                          data-testid="client-history"
+                          className="rounded-lg p-1.5 text-amber-600 transition-colors hover:bg-amber-50 focus-visible:ring-2 focus-visible:ring-amber-500"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <History className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          onClick={() => setModal({ client })}
+                          aria-label={`Editar ${client.full_name}`}
+                          title="Editar"
+                          className="rounded-lg p-1.5 text-indigo-600 transition-colors hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        >
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
                         </button>
                         <button
                           onClick={() => handleDelete(client)}
+                          aria-label={`Eliminar ${client.full_name}`}
                           title="Eliminar"
-                          className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50"
+                          className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-400"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       </div>
                     </td>
@@ -177,6 +184,10 @@ export default function ClientsPage() {
             load()
           }}
         />
+      )}
+
+      {historyClient && (
+        <ClientOrdersModal client={historyClient} onClose={() => setHistoryClient(null)} />
       )}
     </div>
   )

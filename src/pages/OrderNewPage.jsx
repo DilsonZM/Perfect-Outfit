@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { CheckCircle2, ClipboardList, CreditCard, Truck } from 'lucide-react'
+import { CheckCircle2, ClipboardList, CreditCard, Flame, Truck } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { addDays, formatCOP, formatFolio, toLocalInputValue } from '../lib/format'
 import StatusBadge from '../components/StatusBadge'
@@ -32,6 +32,43 @@ export default function OrderNewPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
   const [created, setCreated] = useState(null) // { folio, total }
+
+  // --- Fidelidad ------------------------------------------------------------------
+  const [isLoyalClient, setIsLoyalClient] = useState(false)
+
+  // Cada vez que cambia el cliente, verificamos si tiene historial de órdenes
+  useEffect(() => {
+    if (!clientId) {
+      setIsLoyalClient(false)
+      return
+    }
+
+    let cancelled = false
+
+    async function check() {
+      const { count, error } = await supabase
+        .from('service_orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId)
+
+      if (cancelled) return
+      if (error) return // silencioso: si falla, no mostramos el beneficio
+
+      if ((count ?? 0) > 0) {
+        setIsLoyalClient(true)
+        setDiscountValue('10')
+        setDiscountType('percent')
+      } else {
+        setIsLoyalClient(false)
+      }
+    }
+
+    check()
+
+    return () => {
+      cancelled = true
+    }
+  }, [clientId])
 
   async function loadData() {
     setLoading(true)
@@ -149,6 +186,7 @@ export default function OrderNewPage() {
     setEmployeeId('')
     setDeliveryDate(toLocalInputValue(new Date()))
     setReturnDate(toLocalInputValue(addDays(new Date(), 3)))
+    setIsLoyalClient(false)
     loadData()
   }
 
@@ -216,7 +254,7 @@ export default function OrderNewPage() {
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Columna principal */}
         <div className="space-y-6 lg:col-span-2">
-          <ClientPanel clients={clients} value={clientId} onChange={setClientId} />
+          <ClientPanel clients={clients} value={clientId} onChange={setClientId} loyalClient={isLoyalClient} />
 
           <ItemsEditor lines={lines} onChange={setLines} inventory={inventory} />
 
@@ -311,7 +349,15 @@ export default function OrderNewPage() {
 
             {/* Descuento */}
             <div className="mt-4 border-t border-slate-100 pt-4">
-              <label className="mb-1 block text-sm font-medium text-slate-700">Descuento</label>
+              <div className="mb-1 flex items-center justify-between">
+                <label className="text-sm font-medium text-slate-700">Descuento</label>
+                {isLoyalClient && (
+                  <span className="flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 px-2 py-0.5 text-[11px] font-semibold text-orange-700">
+                    <Flame className="h-3 w-3" aria-hidden="true" />
+                    Fidelidad
+                  </span>
+                )}
+              </div>
               <div className="flex gap-2">
                 <select
                   value={discountType}

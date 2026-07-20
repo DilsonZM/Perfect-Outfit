@@ -1,4 +1,4 @@
-import { User } from 'lucide-react'
+import { Flame, User } from 'lucide-react'
 import { calculateAge } from '../../lib/format'
 
 function Field({ label, value, className = '' }) {
@@ -10,16 +10,24 @@ function Field({ label, value, className = '' }) {
   )
 }
 
-export default function ClientPanel({ clients, value, onChange }) {
+export default function ClientPanel({ clients, value, onChange, loyalClient = false }) {
   const client = clients.find((c) => c.id === value)
   const preferences = Object.entries(client?.preferences ?? {})
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
-        <User className="h-5 w-5 text-indigo-600" />
-        Información del cliente
-      </h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900">
+          <User className="h-5 w-5 text-indigo-600" aria-hidden="true" />
+          Información del cliente
+        </h2>
+        {loyalClient && (
+          <span className="flex shrink-0 items-center gap-1 rounded-full bg-gradient-to-r from-amber-100 to-orange-100 px-3 py-1 text-xs font-semibold text-orange-700 shadow-sm">
+            <Flame className="h-3.5 w-3.5" aria-hidden="true" />
+            Cliente Recurrente
+          </span>
+        )}
+      </div>
 
       <select
         data-testid="client-select"
