@@ -5,6 +5,7 @@ import { supabase } from '../lib/supabaseClient'
 import { formatCOP, formatDateTime, formatFolio } from '../lib/format'
 import StatusBadge from '../components/StatusBadge'
 import OrderDetailModal from '../components/orders/OrderDetailModal'
+import ReturnConfirmationModal from '../components/orders/ReturnConfirmationModal'
 import { confirmAction, showError, showToast } from '../lib/sweetalert'
 
 function displayStatus(order) {
@@ -19,13 +20,14 @@ export default function OrdersPage() {
   const [error, setError] = useState(null)
   const [updating, setUpdating] = useState(null)
   const [detailOrder, setDetailOrder] = useState(null)
+  const [returnOrder, setReturnOrder] = useState(null)
 
   useEffect(() => {
     async function load() {
       const { data, error } = await supabase
         .from('service_orders')
         .select(
-          'id, folio, status, total_amount, discount, payment_method, delivery_date, return_date, created_at, clients(full_name, phone), users(full_name)',
+          'id, folio, status, total_amount, discount, payment_method, delivery_date, return_date, return_received_at, delivery_notes, return_notes, created_at, clients(full_name, phone), users(full_name)',
         )
         .order('folio', { ascending: false })
       if (error) setError(error.message)
@@ -34,15 +36,11 @@ export default function OrdersPage() {
     load()
   }, [])
 
-  async function handleStatusChange(order, newStatus) {
-    const inventoryStatus = newStatus === 'completada' ? 'lavanderia' : 'disponible'
-
+  async function handleCancelOrder(order) {
     const confirmed = await confirmAction(
-      `¿${newStatus === 'completada' ? 'Completar' : 'Cancelar'} ${formatFolio(order.folio)}?`,
-      newStatus === 'completada'
-        ? 'Las prendas pasarán a <strong>Lavandería</strong>.'
-        : 'Las prendas volverán a <strong>Disponible</strong>.',
-      newStatus === 'completada' ? 'Sí, completar' : 'Sí, cancelar',
+      `¿Cancelar ${formatFolio(order.folio)}?`,
+      'Las prendas volverán a <strong>Disponible</strong>.',
+      'Sí, cancelar',
     )
     if (!confirmed) return
 
@@ -50,7 +48,7 @@ export default function OrdersPage() {
     try {
       const { error } = await supabase
         .from('service_orders')
-        .update({ status: newStatus })
+        .update({ status: 'cancelada' })
         .eq('id', order.id)
       if (error) throw error
 
@@ -61,22 +59,35 @@ export default function OrdersPage() {
 
       if (items?.length > 0) {
         const ids = items.map((i) => i.inventory_item_id)
-        const { error: invError } = await supabase
-          .from('inventory')
-          .update({ status: inventoryStatus })
-          .in('id', ids)
-        if (invError) throw invError
+        await supabase.from('inventory').update({ status: 'disponible' }).in('id', ids)
       }
 
       setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, status: newStatus } : o)),
+        prev.map((o) => (o.id === order.id ? { ...o, status: 'cancelada' } : o)),
       )
-      showToast('success', `Orden ${newStatus === 'completada' ? 'completada' : 'cancelada'}`)
+      showToast('success', 'Orden cancelada')
     } catch (err) {
       await showError('Error', err.message)
     } finally {
       setUpdating(null)
     }
+  }
+
+  function handleReturnCompleted() {
+    setReturnOrder(null)
+    load()
+  }
+
+  // Re-fetch after modal closes
+  async function load() {
+    const { data, error } = await supabase
+      .from('service_orders')
+      .select(
+        'id, folio, status, total_amount, discount, payment_method, delivery_date, return_date, created_at, clients(full_name, phone), users(full_name)',
+      )
+      .order('folio', { ascending: false })
+    if (error) setError(error.message)
+    else setOrders(data)
   }
 
   const showActions = (order) => order.status === 'activa'
@@ -161,19 +172,21 @@ export default function OrdersPage() {
                       {showActions(order) ? (
                         <>
                           <button
-                            onClick={() => handleStatusChange(order, 'completada')}
+                            onClick={() => setReturnOrder(order)}
                             disabled={updating === order.id}
-                            aria-label="Completar orden"
-                            title="Completar orden"
+                            aria-label="Confirmar devolución"
+                            title="Confirmar devolución"
+                            data-testid="complete-order"
                             className="rounded-lg p-1.5 text-green-600 transition-colors hover:bg-green-50 focus-visible:ring-2 focus-visible:ring-green-500 disabled:opacity-50"
                           >
                             <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                           </button>
                           <button
-                            onClick={() => handleStatusChange(order, 'cancelada')}
+                            onClick={() => handleCancelOrder(order)}
                             disabled={updating === order.id}
                             aria-label="Cancelar orden"
                             title="Cancelar orden"
+                            data-testid="cancel-order"
                             className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50"
                           >
                             <XCircle className="h-4 w-4" aria-hidden="true" />
@@ -181,15 +194,7 @@ export default function OrdersPage() {
                         </>
                       ) : (
                         <button
-                          onClick={() => {
-                            const el = document.getElementById('order-invoice')
-                            if (el) {
-                              const w = window.open('', '_blank', 'width=800,height=600')
-                              w?.document.write(el.outerHTML)
-                              w?.document.close()
-                              w?.print()
-                            }
-                          }}
+                          onClick={() => setDetailOrder(order)}
                           aria-label={`Imprimir ${formatFolio(order.folio)}`}
                           title="Imprimir"
                           className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100"
@@ -208,6 +213,14 @@ export default function OrdersPage() {
 
       {detailOrder && (
         <OrderDetailModal order={detailOrder} onClose={() => setDetailOrder(null)} />
+      )}
+
+      {returnOrder && (
+        <ReturnConfirmationModal
+          order={returnOrder}
+          onClose={() => setReturnOrder(null)}
+          onCompleted={handleReturnCompleted}
+        />
       )}
     </div>
   )

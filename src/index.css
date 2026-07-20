@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
 @media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
   aside,
   nav,
   button,
@@ -13,16 +18,20 @@
     background: white !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    margin: 0;
   }
 
   #root {
     border: none !important;
     width: 100% !important;
+    margin: 0 !important;
   }
 
   #order-invoice {
-    margin: 0 !important;
-    padding: 20px !important;
+    max-width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
     box-shadow: none !important;
+    border-radius: 0 !important;
   }
 }

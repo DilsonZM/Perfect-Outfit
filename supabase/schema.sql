@@ -73,6 +73,9 @@ create table if not exists public.service_orders (
                  check (status in ('activa', 'atrasada', 'completada', 'cancelada')),
   delivery_date  timestamptz,
   return_date    timestamptz,
+  delivery_notes text,                            -- observaciones de entrega
+  return_notes   text,                            -- observaciones de devolución
+  return_received_at timestamptz,                 -- fecha real de recepción
   created_at     timestamptz not null default now()
 );
 
@@ -85,7 +88,9 @@ create table if not exists public.order_items (
   inventory_item_id uuid not null references public.inventory(id) on delete restrict,
   quantity          integer not null default 1 check (quantity > 0),
   item_type         text not null default 'prenda principal'
-                    check (item_type in ('prenda principal', 'zapato', 'accesorio'))
+                    check (item_type in ('prenda principal', 'zapato', 'accesorio')),
+  returned_ok       boolean,                      -- null=pendiente, true=ok, false=dañado
+  fine_amount       numeric(12,2) not null default 0 check (fine_amount >= 0)
 );
 
 -- ------------------------------------------------------------

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Printer } from 'lucide-react'
+import { Printer, Scissors } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatCOP, formatDateTime, formatFolio } from '../../lib/format'
 import StatusBadge from '../StatusBadge'
@@ -11,7 +11,9 @@ export default function OrderDetailModal({ order, onClose }) {
     async function load() {
       const { data } = await supabase
         .from('order_items')
-        .select('id, quantity, item_type, inventory:inventory_item_id(item_code, subcategory, size, color, base_price)')
+        .select(
+          'id, quantity, item_type, returned_ok, fine_amount, inventory:inventory_item_id(item_code, subcategory, size, color, base_price)',
+        )
         .eq('order_id', order.id)
         .order('item_type')
       setItems(data ?? [])
@@ -19,13 +21,11 @@ export default function OrderDetailModal({ order, onClose }) {
     load()
   }, [order.id])
 
-  const subtotal = items?.reduce(
-    (acc, oi) => acc + (oi.inventory?.base_price ?? 0) * oi.quantity,
-    0,
-  ) ?? 0
-
+  const subtotal =
+    items?.reduce((acc, oi) => acc + (oi.inventory?.base_price ?? 0) * oi.quantity, 0) ?? 0
   const discount = Number(order.discount) || 0
   const total = Number(order.total_amount) || 0
+  const totalFines = items?.reduce((acc, oi) => acc + (Number(oi.fine_amount) || 0), 0) ?? 0
 
   function handlePrint() {
     window.print()
@@ -38,119 +38,163 @@ export default function OrderDetailModal({ order, onClose }) {
     >
       <div
         id="order-invoice"
-        className="my-8 w-full max-w-2xl rounded-2xl bg-white p-8 shadow-2xl print:my-0 print:max-w-none print:rounded-none print:shadow-none"
+        className="my-8 w-full max-w-md overflow-hidden bg-white shadow-2xl print:my-0 print:max-w-none print:shadow-none print:bg-white"
+        style={{ borderRadius: '16px' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Encabezado */}
-        <div className="flex items-start justify-between border-b border-slate-200 pb-6 print:border-slate-300">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Perfect Outfit</h2>
-            <p className="text-sm text-slate-500">Comprobante de alquiler</p>
+        {/* Header — banda de color */}
+        <div className="bg-gradient-to-r from-indigo-700 to-indigo-500 px-6 py-5 text-center text-white">
+          <div className="mx-auto mb-1 flex items-center justify-center gap-2">
+            <Scissors className="h-5 w-5" aria-hidden="true" />
+            <p className="text-sm font-bold uppercase tracking-wider">Perfect Outfit</p>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold text-indigo-600" style={{ fontVariantNumeric: 'tabular-nums' }}>
-              {formatFolio(order.folio)}
-            </p>
-            <p className="text-xs text-slate-400">{formatDateTime(order.created_at)}</p>
-          </div>
+          <p className="text-[11px] tracking-wide text-indigo-100">COMPROBANTE DE ALQUILER</p>
         </div>
 
-        {/* Cliente y orden */}
-        <div className="mt-6 grid grid-cols-2 gap-6 border-b border-slate-100 pb-6 print:border-slate-300">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Cliente</p>
-            <p className="mt-1 font-medium text-slate-800">{order.clients?.full_name ?? '—'}</p>
-            <p className="text-sm text-slate-500">{order.clients?.phone ?? ''}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Estado</p>
-            <div className="mt-1">
-              <StatusBadge status={order.status} />
+        {/* Folio y fecha */}
+        <div className="flex items-center justify-between bg-indigo-50 px-6 py-3">
+          <p className="text-lg font-bold text-indigo-700" style={{ fontVariantNumeric: 'tabular-nums' }}>
+            {formatFolio(order.folio)}
+          </p>
+          <p className="text-xs text-slate-500">{formatDateTime(order.created_at)}</p>
+        </div>
+
+        {/* Info */}
+        <div className="space-y-3 px-6 py-4">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Cliente</p>
+              <p className="mt-0.5 font-medium text-slate-800">{order.clients?.full_name ?? '—'}</p>
+              <p className="text-xs text-slate-400">{order.clients?.phone ?? ''}</p>
             </div>
-            <p className="mt-2 text-sm text-slate-500">
-              Atendido por: {order.users?.full_name ?? '—'}
-            </p>
+            <div className="text-right">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Estado</p>
+              <div className="mt-0.5">
+                <StatusBadge status={order.status} />
+              </div>
+              <p className="mt-1 text-xs text-slate-400">Atendido: {order.users?.full_name ?? '—'}</p>
+            </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-2 rounded-lg bg-slate-50 p-3 text-xs">
+            <div>
+              <span className="text-slate-400">Entrega:</span>{' '}
+              <span className="text-slate-700">{formatDateTime(order.delivery_date)}</span>
+            </div>
+            <div>
+              <span className="text-slate-400">Devolución:</span>{' '}
+              <span className="text-slate-700">{formatDateTime(order.return_date)}</span>
+            </div>
+            <div>
+              <span className="text-slate-400">Pago:</span>{' '}
+              <span className="capitalize text-slate-700">{order.payment_method ?? '—'}</span>
+            </div>
+            {order.return_received_at && (
+              <div>
+                <span className="text-slate-400">Recibido:</span>{' '}
+                <span className="text-slate-700">{formatDateTime(order.return_received_at)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Notas de entrega */}
+          {order.delivery_notes && (
+            <div className="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-3 text-xs">
+              <p className="font-semibold text-amber-700">Notas de salida:</p>
+              <p className="mt-0.5 text-amber-800">{order.delivery_notes}</p>
+            </div>
+          )}
+
+          {/* Notas de devolución */}
+          {order.return_notes && (
+            <div className="rounded-lg border-l-4 border-green-400 bg-green-50 p-3 text-xs">
+              <p className="font-semibold text-green-700">Notas de recepción:</p>
+              <p className="mt-0.5 text-green-800">{order.return_notes}</p>
+            </div>
+          )}
         </div>
 
-        <div className="mt-4 grid grid-cols-2 gap-4 border-b border-slate-100 pb-4 text-sm print:border-slate-300">
-          <div>
-            <span className="text-slate-400">Entrega:</span>{' '}
-            <span className="text-slate-700">{formatDateTime(order.delivery_date)}</span>
-          </div>
-          <div className="text-right">
-            <span className="text-slate-400">Devolución:</span>{' '}
-            <span className="text-slate-700">{formatDateTime(order.return_date)}</span>
-          </div>
-          <div>
-            <span className="text-slate-400">Método de pago:</span>{' '}
-            <span className="capitalize text-slate-700">{order.payment_method ?? '—'}</span>
-          </div>
-        </div>
+        {/* Separador decorativo */}
+        <div className="mx-6 border-t-2 border-dashed border-slate-200" />
 
-        {/* Ítems */}
-        <div className="mt-6">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400 print:border-slate-300">
-                <th className="py-2 font-medium">Código</th>
-                <th className="py-2 font-medium">Descripción</th>
-                <th className="py-2 font-medium">Tipo</th>
-                <th className="py-2 text-center font-medium">Cant</th>
-                <th className="py-2 text-right font-medium">P. Unit</th>
-                <th className="py-2 text-right font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items === null ? (
-                <tr>
-                  <td colSpan={6} className="py-4 text-center text-slate-400">Cargando…</td>
+        {/* Tabla de ítems */}
+        <div className="px-6 py-4">
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Ítems</p>
+
+          {items === null ? (
+            <p className="py-3 text-center text-xs text-slate-400">Cargando…</p>
+          ) : (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b-2 border-slate-200 text-[10px] uppercase tracking-wider text-slate-400">
+                  <th className="py-1.5 text-left font-semibold">Código</th>
+                  <th className="py-1.5 text-left font-semibold">Descripción</th>
+                  <th className="py-1.5 text-right font-semibold">Cant</th>
+                  <th className="py-1.5 text-right font-semibold">Total</th>
                 </tr>
-              ) : (
-                items.map((oi) => {
+              </thead>
+              <tbody>
+                {items.map((oi, idx) => {
                   const inv = oi.inventory
                   const unitPrice = inv?.base_price ?? 0
                   const lineTotal = unitPrice * oi.quantity
                   return (
-                    <tr key={oi.id} className="border-b border-slate-50 last:border-0">
-                      <td className="py-2 font-mono text-xs text-indigo-600">{inv?.item_code ?? '—'}</td>
-                      <td className="py-2 text-slate-700">
-                        {inv?.subcategory ?? '—'}
-                        {inv?.size ? ` · Talla ${inv.size}` : ''}
-                        {inv?.color ? ` · ${inv.color}` : ''}
+                    <tr
+                      key={oi.id}
+                      className={`border-b border-slate-100 text-slate-700 ${idx % 2 === 1 ? 'bg-slate-50' : ''}`}
+                    >
+                      <td className="py-2 font-mono font-semibold text-indigo-600">
+                        {inv?.item_code ?? '—'}
                       </td>
-                      <td className="py-2 text-xs capitalize text-slate-500">{oi.item_type}</td>
-                      <td className="py-2 text-center text-slate-600">{oi.quantity}</td>
-                      <td className="py-2 text-right text-slate-600">{formatCOP(unitPrice)}</td>
-                      <td className="py-2 text-right font-medium text-slate-800">{formatCOP(lineTotal)}</td>
+                      <td className="py-2">
+                        <p>{inv?.subcategory ?? '—'}</p>
+                        <p className="text-[10px] text-slate-400">
+                          {inv?.size ? `T. ${inv.size}` : ''}
+                          {inv?.color ? ` · ${inv.color}` : ''}
+                        </p>
+                      </td>
+                      <td className="py-2 text-right">{oi.quantity}</td>
+                      <td className="py-2 text-right font-medium">{formatCOP(lineTotal)}</td>
                     </tr>
                   )
-                })
-              )}
-            </tbody>
-          </table>
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
 
         {/* Totales */}
-        <div className="mt-4 flex flex-col items-end border-t border-slate-200 pt-4 text-sm print:border-slate-300">
-          <div className="flex w-56 justify-between text-slate-500">
+        <div className="mx-6 border-t border-slate-200" />
+        <div className="space-y-1.5 px-6 py-4 text-sm">
+          <div className="flex justify-between text-slate-500">
             <span>Subtotal</span>
-            <span>{formatCOP(subtotal)}</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCOP(subtotal)}</span>
           </div>
           {discount > 0 && (
-            <div className="mt-1 flex w-56 justify-between text-red-600">
+            <div className="flex justify-between text-red-600">
               <span>Descuento</span>
               <span>−{formatCOP(discount)}</span>
             </div>
           )}
-          <div className="mt-2 flex w-56 justify-between border-t border-slate-200 pt-2 text-base font-bold text-slate-900">
+          {totalFines > 0 && (
+            <div className="flex justify-between text-red-600">
+              <span>Multas</span>
+              <span>+{formatCOP(totalFines)}</span>
+            </div>
+          )}
+          <div className="flex justify-between border-t-2 border-slate-200 pt-2 text-base font-bold text-slate-900">
             <span>Total</span>
-            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCOP(total)}</span>
+            <span style={{ fontVariantNumeric: 'tabular-nums' }}>{formatCOP(total + totalFines)}</span>
           </div>
         </div>
 
+        {/* Footer */}
+        <div className="bg-slate-100 px-6 py-3 text-center text-[10px] text-slate-400 print:bg-white">
+          Perfect Outfit — Sistema de Gestión de Alquiler
+        </div>
+
         {/* Acciones */}
-        <div className="mt-6 flex justify-end gap-3 print:hidden">
+        <div className="flex justify-end gap-3 border-t border-slate-200 px-6 py-4 print:hidden">
           <button
             onClick={onClose}
             className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50"
