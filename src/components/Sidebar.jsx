@@ -21,10 +21,10 @@ const navItems = [
 
 function linkClasses(isActive) {
   return [
-    'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
     isActive
-      ? 'bg-indigo-600 text-white'
-      : 'text-slate-300 hover:bg-slate-800 hover:text-white',
+      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+      : 'text-slate-300 hover:bg-slate-800/60 hover:text-white',
   ].join(' ')
 }
 
@@ -37,6 +37,7 @@ export default function Sidebar() {
     navigate('/login', { replace: true })
   }
 
+  const firstName = user?.full_name?.split(' ')[0] ?? ''
   const initials = user?.full_name
     ?.split(' ')
     .map((w) => w[0])
@@ -45,15 +46,15 @@ export default function Sidebar() {
     .toUpperCase()
 
   return (
-    <aside className="sticky top-0 flex h-screen w-16 shrink-0 flex-col bg-slate-900 md:w-64">
+    <aside className="sticky top-0 flex h-screen w-16 shrink-0 flex-col border-r border-slate-800/50 bg-slate-900 md:w-64">
       {/* Marca */}
       <div className="flex items-center gap-3 px-4 py-5">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600">
-          <Scissors className="h-5 w-5 text-white" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 shadow-lg shadow-indigo-600/20">
+          <Scissors className="h-5 w-5 text-white" aria-hidden="true" />
         </div>
         <div className="hidden md:block">
-          <p className="text-sm font-bold text-white">Perfect Outfit</p>
-          <p className="text-xs text-slate-400">Gestión de alquiler</p>
+          <p className="text-sm font-bold leading-tight text-white">Perfect Outfit</p>
+          <p className="text-[11px] text-slate-400">Gestión de alquiler</p>
         </div>
       </div>
 
@@ -61,15 +62,15 @@ export default function Sidebar() {
       <div className="px-3 pb-2">
         <NavLink
           to="/ordenes/nueva"
-          className="flex items-center justify-center gap-2 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-400 md:justify-start"
+          className="flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-400 md:justify-start"
         >
-          <PlusCircle className="h-5 w-5 shrink-0" />
+          <PlusCircle className="h-5 w-5 shrink-0" aria-hidden="true" />
           <span className="hidden md:inline">Nueva orden</span>
         </NavLink>
       </div>
 
       {/* Navegación */}
-      <nav className="flex-1 space-y-1 px-3 py-2">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2" aria-label="Navegación principal">
         {navItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
@@ -78,31 +79,35 @@ export default function Sidebar() {
             className={({ isActive }) => linkClasses(isActive)}
             title={label}
           >
-            <Icon className="h-5 w-5 shrink-0" />
+            <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
             <span className="hidden md:inline">{label}</span>
           </NavLink>
         ))}
       </nav>
 
-      {/* Usuario actual + salir */}
-      <div className="border-t border-slate-800 p-3">
+      {/* Usuario actual */}
+      <div className="border-t border-slate-800/50 p-3">
         <div className="flex items-center justify-center gap-3 md:justify-start md:px-1">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-xs font-bold text-white">
+          <div
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-xs font-bold text-white shadow-sm"
+            aria-hidden="true"
+          >
             {initials}
           </div>
           <div className="hidden min-w-0 flex-1 md:block">
-            <p className="truncate text-xs font-medium text-white">{user?.full_name}</p>
+            <p className="truncate text-xs font-medium text-white">{firstName}</p>
             <p className="text-[11px] text-slate-400">
               {user?.role === 'admin' ? 'Administrador' : 'Empleado'}
             </p>
           </div>
           <button
             onClick={handleLogout}
+            aria-label="Cerrar sesión"
             title="Cerrar sesión"
             data-testid="logout"
-            className="hidden rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white md:block"
+            className="hidden rounded-xl p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-500 md:block"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
       </div>

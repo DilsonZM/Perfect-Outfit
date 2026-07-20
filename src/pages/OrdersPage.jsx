@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { PlusCircle } from 'lucide-react'
+import { CheckCircle2, PlusCircle, XCircle } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { formatCOP, formatDateTime, formatFolio } from '../lib/format'
 import StatusBadge from '../components/StatusBadge'
@@ -15,6 +15,7 @@ function displayStatus(order) {
 export default function OrdersPage() {
   const [orders, setOrders] = useState(null)
   const [error, setError] = useState(null)
+  const [updating, setUpdating] = useState(null) // id de la orden en proceso
 
   useEffect(() => {
     async function load() {
@@ -29,6 +30,53 @@ export default function OrdersPage() {
     }
     load()
   }, [])
+
+  async function quickStatus(order, newStatus) {
+    const label =
+      newStatus === 'completada'
+        ? 'completar'
+        : 'cancelar'
+    const inventoryStatus = newStatus === 'completada' ? 'lavanderia' : 'disponible'
+    const msg =
+      newStatus === 'completada'
+        ? `¿Completar ${formatFolio(order.folio)}?\nLas prendas pasarán a Lavandería.`
+        : `¿Cancelar ${formatFolio(order.folio)}?\nLas prendas volverán a Disponible.`
+
+    if (!window.confirm(msg)) return
+
+    setUpdating(order.id)
+    try {
+      const { error } = await supabase
+        .from('service_orders')
+        .update({ status: newStatus })
+        .eq('id', order.id)
+      if (error) throw error
+
+      const { data: items } = await supabase
+        .from('order_items')
+        .select('inventory_item_id')
+        .eq('order_id', order.id)
+
+      if (items?.length > 0) {
+        const ids = items.map((i) => i.inventory_item_id)
+        const { error: invError } = await supabase
+          .from('inventory')
+          .update({ status: inventoryStatus })
+          .in('id', ids)
+        if (invError) throw invError
+      }
+
+      setOrders((prev) =>
+        prev.map((o) => (o.id === order.id ? { ...o, status: newStatus } : o)),
+      )
+    } catch (err) {
+      alert(`Error al ${label} la orden: ${err.message}`)
+    } finally {
+      setUpdating(null)
+    }
+  }
+
+  const showActions = (order) => order.status === 'activa'
 
   return (
     <div>
@@ -46,17 +94,13 @@ export default function OrdersPage() {
         </Link>
       </header>
 
-      {error && (
+      {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
           Error cargando órdenes: {error}
         </div>
-      )}
-
-      {!error && orders === null && (
+      ) : orders === null ? (
         <p className="py-16 text-center text-sm text-slate-500">Cargando órdenes…</p>
-      )}
-
-      {!error && orders?.length === 0 && (
+      ) : orders.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
           <p className="text-sm text-slate-500">Aún no hay órdenes registradas.</p>
           <Link
@@ -66,9 +110,7 @@ export default function OrdersPage() {
             Crear la primera orden →
           </Link>
         </div>
-      )}
-
-      {orders?.length > 0 && (
+      ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead>
@@ -80,6 +122,7 @@ export default function OrdersPage() {
                 <th className="px-4 py-3 font-medium">Devolución</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
                 <th className="px-4 py-3 text-right font-medium">Total</th>
+                <th className="w-24 px-4 py-3 text-right font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -97,6 +140,34 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-4 py-3 text-right font-medium text-slate-800">
                     {formatCOP(order.total_amount)}
+                  </td>
+                  <td className="px-4 py-3">
+                    {showActions(order) ? (
+                      <div className="flex justify-end gap-1">
+                        <button
+                          onClick={() => quickStatus(order, 'completada')}
+                          disabled={updating === order.id}
+                          aria-label="Completar orden"
+                          title="Completar orden"
+                          data-testid="complete-order"
+                          className="rounded-lg p-1.5 text-green-600 transition-colors hover:bg-green-50 focus-visible:ring-2 focus-visible:ring-green-500 disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                        <button
+                          onClick={() => quickStatus(order, 'cancelada')}
+                          disabled={updating === order.id}
+                          aria-label="Cancelar orden"
+                          title="Cancelar orden"
+                          data-testid="cancel-order"
+                          className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-400 disabled:opacity-50"
+                        >
+                          <XCircle className="h-4 w-4" aria-hidden="true" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
                   </td>
                 </tr>
               ))}
