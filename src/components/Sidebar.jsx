@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   ClipboardList,
   LayoutDashboard,
+  Loader2,
   LogOut,
   PlusCircle,
   Scissors,
@@ -9,6 +10,7 @@ import {
   Shirt,
   Users,
 } from 'lucide-react'
+import { useState } from 'react'
 import { useAuth } from '../context/useAuth'
 
 const navGroups = [
@@ -41,8 +43,11 @@ function linkClasses(isActive) {
 export default function Sidebar() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [loggingOut, setLoggingOut] = useState(false)
 
-  function handleLogout() {
+  async function handleLogout() {
+    setLoggingOut(true)
+    await new Promise((r) => setTimeout(r, 300))
     logout()
     navigate('/login', { replace: true })
   }
@@ -122,12 +127,17 @@ export default function Sidebar() {
           </div>
           <button
             onClick={handleLogout}
+            disabled={loggingOut}
             aria-label="Cerrar sesión"
             title="Cerrar sesión"
             data-testid="logout"
-            className="hidden rounded-xl p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-500 md:block"
+            className="hidden rounded-xl p-1.5 text-slate-400 transition-colors hover:bg-slate-800 hover:text-white focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-50 md:block"
           >
-            <LogOut className="h-4 w-4" aria-hidden="true" />
+            {loggingOut ? (
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <LogOut className="h-4 w-4" aria-hidden="true" />
+            )}
           </button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { Scissors } from 'lucide-react'
+import { Loader2, Scissors } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import { inputCls, labelCls } from '../lib/styles'
 import PageTransition from '../components/PageTransition'
@@ -93,7 +93,11 @@ export default function LoginPage() {
             data-testid="login-submit"
             className="w-full rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:opacity-60"
           >
-            {loading ? 'Ingresando…' : 'Ingresar'}
+            {loading ? (
+              <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+            ) : (
+              'Ingresar'
+            )}
           </button>
         </form>
 
