@@ -3,6 +3,7 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { Scissors } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 import { inputCls, labelCls } from '../lib/styles'
+import PageTransition from '../components/PageTransition'
 
 export default function LoginPage() {
   const { user, login } = useAuth()
@@ -37,7 +38,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
+    <PageTransition>
+      <div className="flex min-h-screen items-center justify-center bg-slate-900 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-xl">
         <div className="mb-6 flex flex-col items-center">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600">
@@ -100,7 +102,8 @@ export default function LoginPage() {
           <p className="mt-1">Admin: admin@perfectoutfit.co / admin123</p>
           <p>Empleado: empleada@perfectoutfit.co / empleado123</p>
         </div>
+        </div>
       </div>
-    </div>
+    </PageTransition>
   )
 }

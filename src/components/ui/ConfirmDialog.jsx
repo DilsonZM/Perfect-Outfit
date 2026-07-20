@@ -1,9 +1,6 @@
+import { motion } from 'framer-motion'
 import { AlertTriangle } from 'lucide-react'
 
-/**
- * Diálogo de confirmación con diseño limpio.
- * Props: title, message, confirmLabel, onConfirm, onCancel, danger (bool)
- */
 export default function ConfirmDialog({
   title = 'Confirmar acción',
   message,
@@ -13,12 +10,20 @@ export default function ConfirmDialog({
   danger = false,
 }) {
   return (
-    <div
+    <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.12 }}
       onClick={onCancel}
     >
-      <div
+      <motion.div
         className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.12 }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
@@ -49,7 +54,7 @@ export default function ConfirmDialog({
             {confirmLabel}
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
