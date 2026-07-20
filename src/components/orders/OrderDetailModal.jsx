@@ -12,7 +12,7 @@ export default function OrderDetailModal({ order, onClose }) {
       const { data } = await supabase
         .from('order_items')
         .select(
-          'id, quantity, item_type, returned_ok, fine_amount, inventory:inventory_item_id(id, item_code, subcategory, size, color, base_price)',
+          'id, quantity, item_type, returned_ok, fine_amount, inventory:inventory_item_id(id, item_code, subcategory, size, color, base_price, status)',
         )
         .eq('order_id', order.id)
         .order('item_type')
@@ -140,18 +140,25 @@ export default function OrderDetailModal({ order, onClose }) {
                   const unitPrice = inv?.base_price ?? 0
                   const lineTotal = unitPrice * oi.quantity
                   const itemFine = Number(oi.fine_amount) || 0
-                  const isDamaged = oi.returned_ok === false
+                  const isDamaged = oi.returned_ok === false && inv?.status !== 'extraviado'
+                  const isLost = inv?.status === 'extraviado'
+                  const hasIssue = isDamaged || isLost
                   return (
                     <tr
                       key={oi.id}
-                      className={`border-b border-slate-100 text-slate-700 ${isDamaged ? 'bg-red-50' : idx % 2 === 1 ? 'bg-slate-50' : ''}`}
+                      className={`border-b border-slate-100 text-slate-700 ${isLost ? 'bg-red-100' : isDamaged ? 'bg-red-50' : idx % 2 === 1 ? 'bg-slate-50' : ''}`}
                     >
-                      <td className={`py-2 font-mono font-semibold ${isDamaged ? 'text-red-600' : 'text-indigo-600'}`}>
+                      <td className={`py-2 font-mono font-semibold ${hasIssue ? 'text-red-600' : 'text-indigo-600'}`}>
                         {inv?.item_code ?? '—'}
                       </td>
                       <td className="py-2">
                         <div className="flex items-center gap-1.5">
                           <p>{inv?.subcategory ?? '—'}</p>
+                          {isLost && (
+                            <span className="rounded-full bg-red-200 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-700">
+                              Perdido
+                            </span>
+                          )}
                           {isDamaged && (
                             <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-600">
                               Multa

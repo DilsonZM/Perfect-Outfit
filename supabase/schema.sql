@@ -39,7 +39,7 @@ create table if not exists public.inventory (
   base_price       numeric(12,2) not null default 0 check (base_price >= 0),
   replacement_cost numeric(12,2) not null default 0 check (replacement_cost >= 0),
   status           text not null default 'disponible'
-                   check (status in ('disponible', 'alquilado', 'lavanderia', 'mantenimiento')),
+                   check (status in ('disponible', 'alquilado', 'lavanderia', 'mantenimiento', 'extraviado')),
   created_at       timestamptz not null default now()
 );
 

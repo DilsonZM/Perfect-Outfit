@@ -9,12 +9,13 @@ import InventoryFormModal from '../components/inventory/InventoryFormModal'
 import ToggleSwitch from '../components/ui/ToggleSwitch'
 import { confirmAction, confirmDelete, showError, showToast } from '../lib/sweetalert'
 
-const STATUS_TABS = ['todos', 'disponible', 'alquilado', 'lavanderia', 'mantenimiento']
+const STATUS_TABS = ['todos', 'disponible', 'alquilado', 'lavanderia', 'mantenimiento', 'extraviado']
 
 const STATUS_LABELS = {
   disponible: 'Disponible',
   lavanderia: 'Lavandería',
   mantenimiento: 'Mantenimiento',
+  extraviado: 'Extraviado',
 }
 
 export default function InventoryPage() {
@@ -203,6 +204,7 @@ export default function InventoryPage() {
               {filtered.map((item) => {
                 const isAvailable = item.status === 'disponible'
                 const isRented = item.status === 'alquilado'
+                const isLost = item.status === 'extraviado'
 
                 return (
                   <tr key={item.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
@@ -224,7 +226,7 @@ export default function InventoryPage() {
                       <div className="flex items-center gap-2">
                         <ToggleSwitch
                           checked={isAvailable}
-                          disabled={isRented}
+                          disabled={isRented || isLost}
                           onToggle={() => handleToggleStatus(item)}
                         />
                         <StatusBadge status={item.status} />
@@ -232,7 +234,7 @@ export default function InventoryPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
-                        {item.status !== 'mantenimiento' && item.status !== 'alquilado' && (
+                        {item.status !== 'mantenimiento' && item.status !== 'alquilado' && item.status !== 'extraviado' && (
                           <button
                             onClick={() => handleSetMaintenance(item)}
                             aria-label={`Enviar ${item.item_code} a mantenimiento`}

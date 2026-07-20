@@ -1,15 +1,23 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle2, XCircle } from 'lucide-react'
+import { AlertTriangle, Ban, CheckCircle2 } from 'lucide-react'
 import { supabase } from '../../lib/supabaseClient'
 import { formatCOP, formatFolio } from '../../lib/format'
 import { btnPrimaryCls, btnSecondaryCls, inputCls } from '../../lib/styles'
 import { showToast } from '../../lib/sweetalert'
 import Modal from '../ui/Modal'
 
+const STATES = {
+  ok: { label: 'OK', icon: CheckCircle2, cls: 'text-green-600 bg-green-50 border-green-200' },
+  damaged: { label: 'Dañado', icon: AlertTriangle, cls: 'text-amber-600 bg-amber-50 border-amber-200' },
+  lost: { label: 'Perdido', icon: Ban, cls: 'text-red-600 bg-red-50 border-red-200' },
+}
+
+const INVENTORY_STATUS = { ok: 'lavanderia', damaged: 'mantenimiento', lost: 'extraviado' }
+
 export default function ReturnConfirmationModal({ order, onClose, onCompleted }) {
   const [items, setItems] = useState(null)
   const [returnNotes, setReturnNotes] = useState('')
-  const [checks, setChecks] = useState({})
+  const [checks, setChecks] = useState({}) // key → { state, fine }
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
 
@@ -23,18 +31,20 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
       setItems(data ?? [])
       const init = {}
       for (const oi of data ?? []) {
-        init[oi.id] = { ok: true, fine: '' }
+        init[oi.id] = { state: 'ok', fine: '' }
       }
       setChecks(init)
     }
     load()
   }, [order.id])
 
-  function toggleOk(oiId) {
-    setChecks((prev) => ({
-      ...prev,
-      [oiId]: { ...prev[oiId], ok: !prev[oiId].ok, fine: '' },
-    }))
+  function setState(oiId, state) {
+    setChecks((prev) => {
+      const current = prev[oiId]
+      const replacement = items?.find((oi) => oi.id === oiId)?.inventory?.replacement_cost ?? 0
+      const fine = state === 'lost' ? String(replacement) : current.fine
+      return { ...prev, [oiId]: { state, fine } }
+    })
   }
 
   function setFine(oiId, val) {
@@ -46,7 +56,7 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
 
   async function handleConfirm() {
     if (!returnNotes.trim()) {
-      setFormError('Las notas de recepción son obligatorias. Describe el estado de las prendas al recibirlas.')
+      setFormError('Las notas de recepción son obligatorias.')
       return
     }
     setFormError(null)
@@ -54,39 +64,24 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
 
     const now = new Date().toISOString()
 
-    // 1. Update order
     const { error: orderErr } = await supabase
       .from('service_orders')
-      .update({
-        status: 'completada',
-        return_received_at: now,
-        return_notes: returnNotes.trim(),
-      })
+      .update({ status: 'completada', return_received_at: now, return_notes: returnNotes.trim() })
       .eq('id', order.id)
     if (orderErr) { setSaving(false); return alert(orderErr.message) }
 
-    // 2. Update each order_item
     for (const oi of items ?? []) {
-      const chk = checks[oi.id] ?? { ok: true, fine: '' }
-      const { error } = await supabase
+      const chk = checks[oi.id] ?? { state: 'ok', fine: '' }
+      await supabase
         .from('order_items')
-        .update({
-          returned_ok: chk.ok,
-          fine_amount: Number(chk.fine) || 0,
-        })
+        .update({ returned_ok: chk.state === 'ok', fine_amount: Number(chk.fine) || 0 })
         .eq('id', oi.id)
-      if (error) { setSaving(false); return alert(error.message) }
     }
 
-    // 3. Update inventory status
     for (const oi of items ?? []) {
-      const chk = checks[oi.id] ?? { ok: true, fine: '' }
-      const status = chk.ok ? 'lavanderia' : 'mantenimiento'
-      await supabase
-        .from('inventory')
-        .update({ status })
-        .eq('id', oi.inventory?.id)
-        .throwOnError()
+      const chk = checks[oi.id] ?? { state: 'ok', fine: '' }
+      const status = INVENTORY_STATUS[chk.state]
+      await supabase.from('inventory').update({ status }).eq('id', oi.inventory?.id)
     }
 
     showToast('success', 'Devolución confirmada')
@@ -97,12 +92,10 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
   return (
     <Modal title={`Recepción — ${formatFolio(order.folio)}`} onClose={onClose}>
       <div className="max-h-[75vh] overflow-y-auto space-y-5">
-        {/* Cliente */}
         <p className="text-sm text-slate-600">
           Cliente: <strong>{order.clients?.full_name ?? '—'}</strong>
         </p>
 
-        {/* Notas de salida (mostradas solo lectura) */}
         {order.delivery_notes && (
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
             <p className="font-semibold text-slate-600">Notas de salida:</p>
@@ -110,7 +103,6 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
           </div>
         )}
 
-        {/* Checklist de ítems */}
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
             Revisión de prendas devueltas
@@ -122,10 +114,11 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
             <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200">
               {items.map((oi) => {
                 const inv = oi.inventory
-                const chk = checks[oi.id] ?? { ok: true, fine: '' }
-                const isOk = chk.ok
+                const chk = checks[oi.id] ?? { state: 'ok', fine: '' }
+                const showFine = chk.state !== 'ok'
+
                 return (
-                  <li key={oi.id} className={`p-3 ${isOk ? 'bg-white' : 'bg-red-50/50'}`}>
+                  <li key={oi.id} className="space-y-2 p-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-slate-700">
@@ -136,36 +129,42 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
                           {inv?.color ? ` · ${inv.color}` : ''}
                           {' · '}{oi.item_type}
                           {' · '}{formatCOP(inv?.base_price ?? 0)} c/u
+                          {' · Reposición: '}{formatCOP(inv?.replacement_cost ?? 0)}
                         </p>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => toggleOk(oi.id)}
-                        className={`shrink-0 rounded-full p-1.5 transition-colors ${
-                          isOk
-                            ? 'bg-green-100 text-green-600 hover:bg-green-200'
-                            : 'bg-red-100 text-red-500 hover:bg-red-200'
-                        }`}
-                        title={isOk ? 'Devuelto en buen estado' : 'Marcar como dañado/extraviado'}
-                      >
-                        {isOk ? (
-                          <CheckCircle2 className="h-5 w-5" />
-                        ) : (
-                          <XCircle className="h-5 w-5" />
-                        )}
-                      </button>
+                      <div className="flex shrink-0 rounded-lg border border-slate-200 p-0.5">
+                        {Object.entries(STATES).map(([key, s]) => {
+                          const Icon = s.icon
+                          const active = chk.state === key
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => setState(oi.id, key)}
+                              title={s.label}
+                              className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                                active ? s.cls + ' border' : 'text-slate-400 hover:text-slate-600'
+                              }`}
+                            >
+                              <Icon className="h-3.5 w-3.5" />
+                              <span className="hidden sm:inline">{s.label}</span>
+                            </button>
+                          )
+                        })}
+                      </div>
                     </div>
 
-                    {!isOk && (
-                      <div className="mt-2 flex items-center gap-2">
-                        <label className="shrink-0 text-xs text-red-600">Multa ($)</label>
+                    {showFine && (
+                      <div className="flex items-center gap-2">
+                        <label className="shrink-0 text-xs font-medium text-slate-500">
+                          {chk.state === 'lost' ? 'Costo reposición ($)' : 'Multa ($)'}
+                        </label>
                         <input
                           type="number"
                           min="0"
                           value={chk.fine}
                           onChange={(e) => setFine(oi.id, e.target.value)}
-                          placeholder={inv?.replacement_cost ? `Costo: ${formatCOP(inv.replacement_cost)}` : '0'}
                           className={inputCls + ' w-32 text-sm'}
                         />
                       </div>
@@ -177,7 +176,6 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
           )}
         </div>
 
-        {/* Notas de recepción */}
         <div>
           <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">
             Notas de recepción (obligatorio) <span className="text-red-500">*</span>
@@ -185,21 +183,16 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
           <textarea
             value={returnNotes}
             onChange={(e) => { setReturnNotes(e.target.value); setFormError(null) }}
-            placeholder="Describe el estado de las prendas al recibirlas. Ej: Se recibió todo en buen estado. El zapato derecho tiene un rasguño leve en la punta…"
+            placeholder="Describe el estado de las prendas al recibirlas…"
             className={inputCls + ' h-16 resize-none'}
             rows={2}
           />
-          {formError && (
-            <p className="mt-1 text-xs text-red-600">{formError}</p>
-          )}
+          {formError && <p className="mt-1 text-xs text-red-600">{formError}</p>}
         </div>
       </div>
 
-      {/* Botones */}
       <div className="mt-6 flex justify-end gap-3 border-t border-slate-100 pt-4">
-        <button onClick={onClose} className={btnSecondaryCls}>
-          Cancelar
-        </button>
+        <button onClick={onClose} className={btnSecondaryCls}>Cancelar</button>
         <button onClick={handleConfirm} disabled={saving} className={btnPrimaryCls}>
           {saving ? 'Guardando…' : 'Confirmar devolución'}
         </button>

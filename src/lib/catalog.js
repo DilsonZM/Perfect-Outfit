@@ -16,4 +16,4 @@ export const GENDER_LABELS = {
   unisex: 'Unisex',
 }
 
-export const INVENTORY_STATUSES = ['disponible', 'alquilado', 'lavanderia', 'mantenimiento']
+export const INVENTORY_STATUSES = ['disponible', 'alquilado', 'lavanderia', 'mantenimiento', 'extraviado']

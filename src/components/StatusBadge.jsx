@@ -11,6 +11,7 @@ const STYLES = {
   alquilado: 'bg-blue-100 text-blue-700',
   lavanderia: 'bg-amber-100 text-amber-700',
   mantenimiento: 'bg-slate-200 text-slate-600',
+  extraviado: 'bg-red-100 text-red-700',
   // Roles
   admin: 'bg-indigo-100 text-indigo-700',
   employee: 'bg-slate-100 text-slate-600',
@@ -27,6 +28,7 @@ const LABELS = {
   alquilado: 'Alquilado',
   lavanderia: 'Lavandería',
   mantenimiento: 'Mantenimiento',
+  extraviado: 'Extraviado',
   admin: 'Administrador',
   employee: 'Empleado',
 }
