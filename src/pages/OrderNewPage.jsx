@@ -29,6 +29,7 @@ export default function OrderNewPage() {
   const [employeeId, setEmployeeId] = useState('')
   const [deliveryDate, setDeliveryDate] = useState(toLocalInputValue(new Date()))
   const [returnDate, setReturnDate] = useState(toLocalInputValue(addDays(new Date(), 3)))
+  const [deliveryNotes, setDeliveryNotes] = useState('')
 
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -129,6 +130,7 @@ export default function OrderNewPage() {
     if (!deliveryDate || !returnDate) return setError('Define las fechas de entrega y devolución.')
     if (new Date(returnDate) <= new Date(deliveryDate))
       return setError('La fecha de devolución debe ser posterior a la de entrega.')
+    if (!deliveryNotes.trim()) return setError('Describe las notas de salida (estado de las prendas al entregar).')
 
     const clientName = clients.find((c) => c.id === clientId)?.full_name ?? 'el cliente'
     const confirmed = await confirmSubmit(
@@ -148,6 +150,7 @@ export default function OrderNewPage() {
           total_amount: total,
           discount: discountAmount,
           payment_method: paymentMethod,
+          delivery_notes: deliveryNotes.trim(),
           status: 'activa',
           delivery_date: new Date(deliveryDate).toISOString(),
           return_date: new Date(returnDate).toISOString(),
@@ -185,6 +188,8 @@ export default function OrderNewPage() {
         payment_method: paymentMethod,
         delivery_date: new Date(deliveryDate).toISOString(),
         return_date: new Date(returnDate).toISOString(),
+        delivery_notes: deliveryNotes.trim(),
+        return_received_at: null,
         created_at: new Date().toISOString(),
         clients: {
           full_name: clients.find((c) => c.id === clientId)?.full_name,
@@ -209,6 +214,7 @@ export default function OrderNewPage() {
     setEmployeeId('')
     setDeliveryDate(toLocalInputValue(new Date()))
     setReturnDate(toLocalInputValue(addDays(new Date(), 3)))
+    setDeliveryNotes('')
     setIsLoyalClient(false)
     loadData()
   }
@@ -315,6 +321,19 @@ export default function OrderNewPage() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium text-slate-700">
+                Notas de salida (obligatorio) <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                value={deliveryNotes}
+                onChange={(e) => setDeliveryNotes(e.target.value)}
+                placeholder="Describe el estado de cada prenda al momento de la entrega. Ej: El traje va con una pequeña mancha en la solapa izquierda, los zapatos tienen desgaste leve en la suela…"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                rows={3}
+              />
             </div>
           </section>
         </div>

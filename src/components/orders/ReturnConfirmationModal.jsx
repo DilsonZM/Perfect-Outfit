@@ -8,10 +8,10 @@ import Modal from '../ui/Modal'
 
 export default function ReturnConfirmationModal({ order, onClose, onCompleted }) {
   const [items, setItems] = useState(null)
-  const [deliveryNotes, setDeliveryNotes] = useState('')
   const [returnNotes, setReturnNotes] = useState('')
-  const [checks, setChecks] = useState({}) // key: orderItemId → { ok, fine }
+  const [checks, setChecks] = useState({})
   const [saving, setSaving] = useState(false)
+  const [formError, setFormError] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -45,6 +45,11 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
   }
 
   async function handleConfirm() {
+    if (!returnNotes.trim()) {
+      setFormError('Las notas de recepción son obligatorias. Describe el estado de las prendas al recibirlas.')
+      return
+    }
+    setFormError(null)
     setSaving(true)
 
     const now = new Date().toISOString()
@@ -55,8 +60,7 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
       .update({
         status: 'completada',
         return_received_at: now,
-        delivery_notes: deliveryNotes.trim() || null,
-        return_notes: returnNotes.trim() || null,
+        return_notes: returnNotes.trim(),
       })
       .eq('id', order.id)
     if (orderErr) { setSaving(false); return alert(orderErr.message) }
@@ -98,19 +102,13 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
           Cliente: <strong>{order.clients?.full_name ?? '—'}</strong>
         </p>
 
-        {/* Notas de entrega */}
-        <div>
-          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Notas de salida (entrega)
-          </label>
-          <textarea
-            value={deliveryNotes}
-            onChange={(e) => setDeliveryNotes(e.target.value)}
-            placeholder="Ej: El traje va con una pequeña mancha en la solapa izquierda…"
-            className={inputCls + ' h-16 resize-none'}
-            rows={2}
-          />
-        </div>
+        {/* Notas de salida (mostradas solo lectura) */}
+        {order.delivery_notes && (
+          <div className="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-3 text-xs">
+            <p className="font-semibold text-amber-700">Notas de salida (entrega):</p>
+            <p className="mt-0.5 text-amber-800">{order.delivery_notes}</p>
+          </div>
+        )}
 
         {/* Checklist de ítems */}
         <div>
@@ -182,15 +180,18 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
         {/* Notas de recepción */}
         <div>
           <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">
-            Notas de recepción (devolución)
+            Notas de recepción (obligatorio) <span className="text-red-500">*</span>
           </label>
           <textarea
             value={returnNotes}
-            onChange={(e) => setReturnNotes(e.target.value)}
-            placeholder="Ej: Se recibió todo en buen estado. El zapato derecho tiene rasguño leve…"
+            onChange={(e) => { setReturnNotes(e.target.value); setFormError(null) }}
+            placeholder="Describe el estado de las prendas al recibirlas. Ej: Se recibió todo en buen estado. El zapato derecho tiene un rasguño leve en la punta…"
             className={inputCls + ' h-16 resize-none'}
             rows={2}
           />
+          {formError && (
+            <p className="mt-1 text-xs text-red-600">{formError}</p>
+          )}
         </div>
       </div>
 
