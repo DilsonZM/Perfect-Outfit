@@ -6,8 +6,8 @@ import { CATEGORIES, GENDER_LABELS } from '../lib/catalog'
 import { btnPrimaryCls, inputCls } from '../lib/styles'
 import StatusBadge from '../components/StatusBadge'
 import InventoryFormModal from '../components/inventory/InventoryFormModal'
-import ConfirmDialog from '../components/ui/ConfirmDialog'
 import ToggleSwitch from '../components/ui/ToggleSwitch'
+import { confirmAction, confirmDelete, showError } from '../lib/sweetalert'
 
 const STATUS_TABS = ['todos', 'disponible', 'alquilado', 'lavanderia', 'mantenimiento']
 
@@ -23,11 +23,7 @@ export default function InventoryPage() {
   const [statusFilter, setStatusFilter] = useState('todos')
   const [categoryFilter, setCategoryFilter] = useState('todas')
   const [search, setSearch] = useState('')
-  const [modal, setModal] = useState(null) // null | { item?: objeto }
-
-  // Toggle → confirmación de estado
-  const [statusDialog, setStatusDialog] = useState(null) // { item, target }
-  const [statusSaving, setStatusSaving] = useState(false)
+  const [modal, setModal] = useState(null)
 
   async function load() {
     const { data, error } = await supabase
@@ -61,28 +57,41 @@ export default function InventoryPage() {
     })
   }, [items, statusFilter, categoryFilter, search])
 
-  async function handleStatusConfirm() {
-    if (!statusDialog) return
-    const { item, target } = statusDialog
-    setStatusSaving(true)
-    const { error } = await supabase.from('inventory').update({ status: target }).eq('id', item.id)
-    setStatusSaving(false)
+  async function handleToggleStatus(item) {
+    const isAvailable = item.status === 'disponible'
+    const target = isAvailable ? 'lavanderia' : 'disponible'
+
+    const confirmed = await confirmAction(
+      'Cambiar estado',
+      `¿Cambiar <strong>${item.item_code}</strong> (${item.subcategory ?? item.category}) de <span class="font-semibold text-slate-800">${STATUS_LABELS[item.status]}</span> a <span class="font-semibold text-slate-800">${STATUS_LABELS[target]}</span>?`,
+      'Sí, cambiar',
+    )
+    if (!confirmed) return
+
+    const { error } = await supabase
+      .from('inventory')
+      .update({ status: target })
+      .eq('id', item.id)
     if (error) {
-      alert('Error cambiando estado: ' + error.message)
+      await showError('Error', error.message)
     } else {
-      setStatusDialog(null)
       load()
     }
   }
 
   async function handleDelete(item) {
-    if (!window.confirm(`¿Eliminar ${item.item_code} (${item.subcategory ?? item.category})?`)) return
+    const confirmed = await confirmDelete(
+      `${item.item_code} (${item.subcategory ?? item.category})`,
+    )
+    if (!confirmed) return
+
     const { error } = await supabase.from('inventory').delete().eq('id', item.id)
     if (error) {
-      alert(
+      await showError(
+        'No se puede eliminar',
         error.code === '23503'
-          ? 'No se puede eliminar: la prenda tiene órdenes asociadas.'
-          : 'Error eliminando: ' + error.message,
+          ? 'La prenda tiene órdenes asociadas.'
+          : error.message,
       )
     } else {
       load()
@@ -106,7 +115,6 @@ export default function InventoryPage() {
         </button>
       </header>
 
-      {/* Filtros */}
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1">
           {STATUS_TABS.map((s) => (
@@ -195,10 +203,7 @@ export default function InventoryPage() {
                         <ToggleSwitch
                           checked={isAvailable}
                           disabled={isRented}
-                          onToggle={() => {
-                            const target = isAvailable ? 'lavanderia' : 'disponible'
-                            setStatusDialog({ item, target })
-                          }}
+                          onToggle={() => handleToggleStatus(item)}
                         />
                         <StatusBadge status={item.status} />
                       </div>
@@ -245,17 +250,6 @@ export default function InventoryPage() {
             setModal(null)
             load()
           }}
-        />
-      )}
-
-      {/* ConfirmDialog para cambio de estado */}
-      {statusDialog && (
-        <ConfirmDialog
-          title="Cambiar estado de la prenda"
-          message={`¿Estás seguro de cambiar el estado de ${statusDialog.item.item_code} de "${STATUS_LABELS[statusDialog.item.status] ?? statusDialog.item.status}" a "${STATUS_LABELS[statusDialog.target] ?? statusDialog.target}"?`}
-          confirmLabel={statusSaving ? 'Cambiando…' : 'Confirmar'}
-          onConfirm={handleStatusConfirm}
-          onCancel={() => setStatusDialog(null)}
         />
       )}
     </div>

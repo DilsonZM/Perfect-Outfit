@@ -5,12 +5,13 @@ import { calculateAge } from '../lib/format'
 import { btnPrimaryCls, inputCls } from '../lib/styles'
 import ClientFormModal from '../components/clients/ClientFormModal'
 import ClientOrdersModal from '../components/clients/ClientOrdersModal'
+import { confirmDelete, showError } from '../lib/sweetalert'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState(null)
   const [error, setError] = useState(null)
   const [search, setSearch] = useState('')
-  const [modal, setModal] = useState(null) // null | { client?: objeto }
+  const [modal, setModal] = useState(null)
   const [historyClient, setHistoryClient] = useState(null)
 
   async function load() {
@@ -36,13 +37,16 @@ export default function ClientsPage() {
   }, [clients, search])
 
   async function handleDelete(client) {
-    if (!window.confirm(`¿Eliminar a ${client.full_name}?`)) return
+    const confirmed = await confirmDelete(client.full_name)
+    if (!confirmed) return
+
     const { error } = await supabase.from('clients').delete().eq('id', client.id)
     if (error) {
-      alert(
+      await showError(
+        'No se puede eliminar',
         error.code === '23503'
-          ? 'No se puede eliminar: el cliente tiene órdenes asociadas.'
-          : 'Error eliminando: ' + error.message,
+          ? 'El cliente tiene órdenes asociadas.'
+          : error.message,
       )
     } else {
       load()

@@ -4,6 +4,7 @@ import { CheckCircle2, PlusCircle, XCircle } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { formatCOP, formatDateTime, formatFolio } from '../lib/format'
 import StatusBadge from '../components/StatusBadge'
+import { confirmAction, showError } from '../lib/sweetalert'
 
 function displayStatus(order) {
   if (order.status === 'activa' && order.return_date && new Date(order.return_date) < new Date()) {
@@ -15,7 +16,7 @@ function displayStatus(order) {
 export default function OrdersPage() {
   const [orders, setOrders] = useState(null)
   const [error, setError] = useState(null)
-  const [updating, setUpdating] = useState(null) // id de la orden en proceso
+  const [updating, setUpdating] = useState(null)
 
   useEffect(() => {
     async function load() {
@@ -31,18 +32,17 @@ export default function OrdersPage() {
     load()
   }, [])
 
-  async function quickStatus(order, newStatus) {
-    const label =
-      newStatus === 'completada'
-        ? 'completar'
-        : 'cancelar'
+  async function handleStatusChange(order, newStatus) {
     const inventoryStatus = newStatus === 'completada' ? 'lavanderia' : 'disponible'
-    const msg =
-      newStatus === 'completada'
-        ? `¿Completar ${formatFolio(order.folio)}?\nLas prendas pasarán a Lavandería.`
-        : `¿Cancelar ${formatFolio(order.folio)}?\nLas prendas volverán a Disponible.`
 
-    if (!window.confirm(msg)) return
+    const confirmed = await confirmAction(
+      `¿${newStatus === 'completada' ? 'Completar' : 'Cancelar'} ${formatFolio(order.folio)}?`,
+      newStatus === 'completada'
+        ? 'Las prendas pasarán a <strong>Lavandería</strong>.'
+        : 'Las prendas volverán a <strong>Disponible</strong>.',
+      newStatus === 'completada' ? 'Sí, completar' : 'Sí, cancelar',
+    )
+    if (!confirmed) return
 
     setUpdating(order.id)
     try {
@@ -70,7 +70,7 @@ export default function OrdersPage() {
         prev.map((o) => (o.id === order.id ? { ...o, status: newStatus } : o)),
       )
     } catch (err) {
-      alert(`Error al ${label} la orden: ${err.message}`)
+      await showError('Error', err.message)
     } finally {
       setUpdating(null)
     }
@@ -145,7 +145,7 @@ export default function OrdersPage() {
                     {showActions(order) ? (
                       <div className="flex justify-end gap-1">
                         <button
-                          onClick={() => quickStatus(order, 'completada')}
+                          onClick={() => handleStatusChange(order, 'completada')}
                           disabled={updating === order.id}
                           aria-label="Completar orden"
                           title="Completar orden"
@@ -155,7 +155,7 @@ export default function OrdersPage() {
                           <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                         <button
-                          onClick={() => quickStatus(order, 'cancelada')}
+                          onClick={() => handleStatusChange(order, 'cancelada')}
                           disabled={updating === order.id}
                           aria-label="Cancelar orden"
                           title="Cancelar orden"
