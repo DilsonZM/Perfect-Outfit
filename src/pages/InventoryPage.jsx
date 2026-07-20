@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
-import { CheckCircle2, Droplets, Pencil, PlusCircle, Search, Trash2, Wrench } from 'lucide-react'
+import { Pencil, PlusCircle, Search, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { formatCOP } from '../lib/format'
 import { CATEGORIES, GENDER_LABELS } from '../lib/catalog'
 import { btnPrimaryCls, inputCls } from '../lib/styles'
 import StatusBadge from '../components/StatusBadge'
 import InventoryFormModal from '../components/inventory/InventoryFormModal'
+import ConfirmDialog from '../components/ui/ConfirmDialog'
+import ToggleSwitch from '../components/ui/ToggleSwitch'
 
 const STATUS_TABS = ['todos', 'disponible', 'alquilado', 'lavanderia', 'mantenimiento']
+
+const STATUS_LABELS = {
+  disponible: 'Disponible',
+  lavanderia: 'Lavandería',
+  mantenimiento: 'Mantenimiento',
+}
 
 export default function InventoryPage() {
   const [items, setItems] = useState(null)
@@ -16,6 +24,10 @@ export default function InventoryPage() {
   const [categoryFilter, setCategoryFilter] = useState('todas')
   const [search, setSearch] = useState('')
   const [modal, setModal] = useState(null) // null | { item?: objeto }
+
+  // Toggle → confirmación de estado
+  const [statusDialog, setStatusDialog] = useState(null) // { item, target }
+  const [statusSaving, setStatusSaving] = useState(false)
 
   async function load() {
     const { data, error } = await supabase
@@ -49,10 +61,18 @@ export default function InventoryPage() {
     })
   }, [items, statusFilter, categoryFilter, search])
 
-  async function quickStatus(item, status) {
-    const { error } = await supabase.from('inventory').update({ status }).eq('id', item.id)
-    if (error) alert('Error cambiando estado: ' + error.message)
-    else load()
+  async function handleStatusConfirm() {
+    if (!statusDialog) return
+    const { item, target } = statusDialog
+    setStatusSaving(true)
+    const { error } = await supabase.from('inventory').update({ status: target }).eq('id', item.id)
+    setStatusSaving(false)
+    if (error) {
+      alert('Error cambiando estado: ' + error.message)
+    } else {
+      setStatusDialog(null)
+      load()
+    }
   }
 
   async function handleDelete(item) {
@@ -126,15 +146,13 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {error && (
+      {error ? (
         <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
           Error cargando inventario: {error}
         </div>
-      )}
-
-      {!error && items === null && (
+      ) : items === null ? (
         <p className="py-16 text-center text-sm text-slate-500">Cargando inventario…</p>
-      )}
+      ) : null}
 
       {filtered.length > 0 && (
         <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -148,78 +166,66 @@ export default function InventoryPage() {
                 <th className="px-4 py-3 font-medium">Color</th>
                 <th className="px-4 py-3 text-right font-medium">Precio</th>
                 <th className="px-4 py-3 font-medium">Estado</th>
-                <th className="px-4 py-3 text-right font-medium">Acciones</th>
+                <th className="w-28 px-4 py-3 text-right font-medium">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((item) => (
-                <tr key={item.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="px-4 py-3 font-semibold text-indigo-600">{item.item_code}</td>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{item.subcategory ?? item.category}</p>
-                    <p className="text-xs text-slate-400">
-                      {item.category}
-                      {item.brand ? ` · ${item.brand}` : ''}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3 text-slate-500">{GENDER_LABELS[item.gender] ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-500">{item.size ?? '—'}</td>
-                  <td className="px-4 py-3 text-slate-500">{item.color ?? '—'}</td>
-                  <td className="px-4 py-3 text-right font-medium text-slate-800">
-                    {formatCOP(item.base_price)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={item.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1">
-                      {item.status !== 'disponible' && (
+              {filtered.map((item) => {
+                const isAvailable = item.status === 'disponible'
+                const isRented = item.status === 'alquilado'
+
+                return (
+                  <tr key={item.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
+                    <td className="px-4 py-3 font-semibold text-indigo-600">{item.item_code}</td>
+                    <td className="px-4 py-3">
+                      <p className="font-medium text-slate-800">{item.subcategory ?? item.category}</p>
+                      <p className="text-xs text-slate-400">
+                        {item.category}
+                        {item.brand ? ` · ${item.brand}` : ''}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3 text-slate-500">{GENDER_LABELS[item.gender] ?? '—'}</td>
+                    <td className="px-4 py-3 text-slate-500">{item.size ?? '—'}</td>
+                    <td className="px-4 py-3 text-slate-500">{item.color ?? '—'}</td>
+                    <td className="px-4 py-3 text-right font-medium text-slate-800">
+                      {formatCOP(item.base_price)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <ToggleSwitch
+                          checked={isAvailable}
+                          disabled={isRented}
+                          onToggle={() => {
+                            const target = isAvailable ? 'lavanderia' : 'disponible'
+                            setStatusDialog({ item, target })
+                          }}
+                        />
+                        <StatusBadge status={item.status} />
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-1">
                         <button
-                          onClick={() => quickStatus(item, 'disponible')}
-                          title="Marcar disponible"
-                          data-testid="to-available"
-                          className="rounded-lg p-1.5 text-green-600 transition-colors hover:bg-green-50"
+                          onClick={() => setModal({ item })}
+                          aria-label={`Editar ${item.item_code}`}
+                          title="Editar"
+                          className="rounded-lg p-1.5 text-indigo-600 transition-colors hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-indigo-500"
                         >
-                          <CheckCircle2 className="h-4 w-4" />
+                          <Pencil className="h-4 w-4" aria-hidden="true" />
                         </button>
-                      )}
-                      {item.status !== 'lavanderia' && (
                         <button
-                          onClick={() => quickStatus(item, 'lavanderia')}
-                          title="Enviar a lavandería"
-                          data-testid="to-laundry"
-                          className="rounded-lg p-1.5 text-amber-600 transition-colors hover:bg-amber-50"
+                          onClick={() => handleDelete(item)}
+                          aria-label={`Eliminar ${item.item_code}`}
+                          title="Eliminar"
+                          className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-400"
                         >
-                          <Droplets className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
-                      )}
-                      {item.status !== 'mantenimiento' && (
-                        <button
-                          onClick={() => quickStatus(item, 'mantenimiento')}
-                          title="Enviar a mantenimiento"
-                          className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100"
-                        >
-                          <Wrench className="h-4 w-4" />
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setModal({ item })}
-                        title="Editar"
-                        className="rounded-lg p-1.5 text-indigo-600 transition-colors hover:bg-indigo-50"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(item)}
-                        title="Eliminar"
-                        className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>
@@ -239,6 +245,17 @@ export default function InventoryPage() {
             setModal(null)
             load()
           }}
+        />
+      )}
+
+      {/* ConfirmDialog para cambio de estado */}
+      {statusDialog && (
+        <ConfirmDialog
+          title="Cambiar estado de la prenda"
+          message={`¿Estás seguro de cambiar el estado de ${statusDialog.item.item_code} de "${STATUS_LABELS[statusDialog.item.status] ?? statusDialog.item.status}" a "${STATUS_LABELS[statusDialog.target] ?? statusDialog.target}"?`}
+          confirmLabel={statusSaving ? 'Cambiando…' : 'Confirmar'}
+          onConfirm={handleStatusConfirm}
+          onCancel={() => setStatusDialog(null)}
         />
       )}
     </div>

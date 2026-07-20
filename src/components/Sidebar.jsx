@@ -11,20 +11,30 @@ import {
 } from 'lucide-react'
 import { useAuth } from '../context/useAuth'
 
-const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/ordenes', label: 'Órdenes', icon: ClipboardList },
-  { to: '/inventario', label: 'Inventario', icon: Shirt },
-  { to: '/clientes', label: 'Clientes', icon: Users },
-  { to: '/usuarios', label: 'Usuarios', icon: ShieldCheck },
+const navGroups = [
+  {
+    label: 'Operación',
+    items: [
+      { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
+      { to: '/ordenes', label: 'Órdenes', icon: ClipboardList },
+      { to: '/inventario', label: 'Inventario', icon: Shirt },
+    ],
+  },
+  {
+    label: 'Administración',
+    items: [
+      { to: '/clientes', label: 'Clientes', icon: Users },
+      { to: '/usuarios', label: 'Usuarios', icon: ShieldCheck },
+    ],
+  },
 ]
 
 function linkClasses(isActive) {
   return [
-    'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
+    'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all',
     isActive
-      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-      : 'text-slate-300 hover:bg-slate-800/60 hover:text-white',
+      ? 'border-l-3 border-l-indigo-500 bg-indigo-600/10 text-white shadow-sm'
+      : 'border-l-3 border-l-transparent text-slate-300 hover:bg-slate-800/60 hover:text-white',
   ].join(' ')
 }
 
@@ -59,7 +69,7 @@ export default function Sidebar() {
       </div>
 
       {/* Acción rápida */}
-      <div className="px-3 pb-2">
+      <div className="px-3 pb-4">
         <NavLink
           to="/ordenes/nueva"
           className="flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:bg-indigo-400 md:justify-start"
@@ -69,19 +79,29 @@ export default function Sidebar() {
         </NavLink>
       </div>
 
-      {/* Navegación */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-2" aria-label="Navegación principal">
-        {navItems.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) => linkClasses(isActive)}
-            title={label}
-          >
-            <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
-            <span className="hidden md:inline">{label}</span>
-          </NavLink>
+      {/* Navegación agrupada */}
+      <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-1" aria-label="Navegación principal">
+        {navGroups.map(({ label, items }) => (
+          <div key={label}>
+            <p className="mb-1.5 hidden px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-500 md:block">
+              {label}
+            </p>
+            <ul className="space-y-0.5">
+              {items.map(({ to, label: itemLabel, icon: Icon, end }) => (
+                <li key={to}>
+                  <NavLink
+                    to={to}
+                    end={end}
+                    className={({ isActive }) => linkClasses(isActive)}
+                    title={itemLabel}
+                  >
+                    <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                    <span className="hidden md:inline">{itemLabel}</span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
         ))}
       </nav>
 
