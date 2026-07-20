@@ -130,7 +130,8 @@ export default function OrderDetailModal({ order, onClose }) {
                   <th className="py-1.5 text-left font-semibold">Código</th>
                   <th className="py-1.5 text-left font-semibold">Descripción</th>
                   <th className="py-1.5 text-right font-semibold">Cant</th>
-                  <th className="py-1.5 text-right font-semibold">Total</th>
+                  <th className="py-1.5 text-right font-semibold">Alquiler</th>
+                  {totalFines > 0 && <th className="py-1.5 text-right font-semibold text-red-500">Multa</th>}
                 </tr>
               </thead>
               <tbody>
@@ -138,16 +139,25 @@ export default function OrderDetailModal({ order, onClose }) {
                   const inv = oi.inventory
                   const unitPrice = inv?.base_price ?? 0
                   const lineTotal = unitPrice * oi.quantity
+                  const itemFine = Number(oi.fine_amount) || 0
+                  const isDamaged = oi.returned_ok === false
                   return (
                     <tr
                       key={oi.id}
-                      className={`border-b border-slate-100 text-slate-700 ${idx % 2 === 1 ? 'bg-slate-50' : ''}`}
+                      className={`border-b border-slate-100 text-slate-700 ${isDamaged ? 'bg-red-50' : idx % 2 === 1 ? 'bg-slate-50' : ''}`}
                     >
-                      <td className="py-2 font-mono font-semibold text-indigo-600">
+                      <td className={`py-2 font-mono font-semibold ${isDamaged ? 'text-red-600' : 'text-indigo-600'}`}>
                         {inv?.item_code ?? '—'}
                       </td>
                       <td className="py-2">
-                        <p>{inv?.subcategory ?? '—'}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p>{inv?.subcategory ?? '—'}</p>
+                          {isDamaged && (
+                            <span className="rounded-full bg-red-100 px-1.5 py-0.5 text-[9px] font-bold uppercase text-red-600">
+                              Multa
+                            </span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-slate-400">
                           {inv?.size ? `T. ${inv.size}` : ''}
                           {inv?.color ? ` · ${inv.color}` : ''}
@@ -155,6 +165,11 @@ export default function OrderDetailModal({ order, onClose }) {
                       </td>
                       <td className="py-2 text-right">{oi.quantity}</td>
                       <td className="py-2 text-right font-medium">{formatCOP(lineTotal)}</td>
+                      {totalFines > 0 && (
+                        <td className={`py-2 text-right font-bold ${itemFine > 0 ? 'text-red-600' : 'text-slate-300'}`}>
+                          {itemFine > 0 ? formatCOP(itemFine) : '—'}
+                        </td>
+                      )}
                     </tr>
                   )
                 })}
