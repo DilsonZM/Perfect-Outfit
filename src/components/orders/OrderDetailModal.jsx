@@ -38,7 +38,7 @@ export default function OrderDetailModal({ order, onClose }) {
     >
       <div
         id="order-invoice"
-        className="my-8 w-full max-w-md overflow-hidden bg-white shadow-2xl print:my-0 print:max-w-none print:shadow-none print:bg-white"
+        className="my-8 w-full max-w-lg overflow-hidden bg-white shadow-2xl print:my-0 print:max-w-none print:shadow-none print:bg-white"
         style={{ borderRadius: '16px' }}
         onClick={(e) => e.stopPropagation()}
       >
