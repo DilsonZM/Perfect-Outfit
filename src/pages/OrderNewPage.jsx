@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ClipboardList, CreditCard, Flame, Truck } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
-import { addDays, formatCOP, formatFolio, toLocalInputValue } from '../lib/format'
+import { addDays, formatCOP, formatDateTime, formatFolio, toLocalInputValue } from '../lib/format'
 import StatusBadge from '../components/StatusBadge'
 import ClientPanel from '../components/orders/ClientPanel'
 import ItemsEditor from '../components/orders/ItemsEditor'
@@ -37,11 +37,13 @@ export default function OrderNewPage() {
 
   // --- Fidelidad ------------------------------------------------------------------
   const [isLoyalClient, setIsLoyalClient] = useState(false)
+  const [recentOrders, setRecentOrders] = useState(null)
 
   // Cada vez que cambia el cliente, verificamos si tiene historial de órdenes
   useEffect(() => {
     if (!clientId) {
       setIsLoyalClient(false)
+      setRecentOrders(null)
       return
     }
 
@@ -60,8 +62,17 @@ export default function OrderNewPage() {
         setIsLoyalClient(true)
         setDiscountValue('10')
         setDiscountType('percent')
+
+        const { data } = await supabase
+          .from('service_orders')
+          .select('folio, status, total_amount, created_at')
+          .eq('client_id', clientId)
+          .order('folio', { ascending: false })
+          .limit(3)
+        if (!cancelled) setRecentOrders(data ?? [])
       } else {
         setIsLoyalClient(false)
+        setRecentOrders(null)
       }
     }
 
@@ -415,6 +426,31 @@ export default function OrderNewPage() {
               {submitting ? 'Generando orden…' : 'Generar orden'}
             </button>
           </section>
+
+          {/* Últimas órdenes del cliente recurrente */}
+          {isLoyalClient && recentOrders && recentOrders.length > 0 && (
+            <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Últimas órdenes
+              </p>
+              <ul className="mt-3 divide-y divide-slate-50">
+                {recentOrders.map((o) => (
+                  <li key={o.folio} className="flex items-center justify-between py-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-indigo-600" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                        {formatFolio(o.folio)}
+                      </span>
+                      <StatusBadge status={o.status} />
+                    </div>
+                    <div className="flex items-center gap-3 text-slate-400">
+                      <span>{formatDateTime(o.created_at)}</span>
+                      <span className="font-medium text-slate-600">{formatCOP(o.total_amount)}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </aside>
       </div>
     </form>

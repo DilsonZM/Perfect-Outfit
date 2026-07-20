@@ -78,7 +78,7 @@ export default function ItemsEditor({ lines, onChange, inventory }) {
             <div key={line.key} className="rounded-lg border border-slate-200 p-3">
               <div className="grid grid-cols-12 items-center gap-2">
                 {/* 1. Categoría */}
-                <div className="col-span-12 sm:col-span-6 lg:col-span-3">
+                <div className="col-span-12 sm:col-span-5 lg:col-span-2">
                   <select
                     data-testid="category-select"
                     value={line.category}
@@ -95,7 +95,7 @@ export default function ItemsEditor({ lines, onChange, inventory }) {
                 </div>
 
                 {/* 2. Subtipo (género) */}
-                <div className="col-span-6 sm:col-span-3 lg:col-span-2">
+                <div className="col-span-5 sm:col-span-3 lg:col-span-2">
                   <select
                     data-testid="gender-select"
                     value={line.gender}
@@ -113,7 +113,7 @@ export default function ItemsEditor({ lines, onChange, inventory }) {
                 </div>
 
                 {/* 3. Prenda (talla y color disponibles) */}
-                <div className="col-span-12 lg:col-span-4">
+                <div className="col-span-12 lg:col-span-5">
                   <select
                     data-testid="item-select"
                     value={line.inventoryItemId}
