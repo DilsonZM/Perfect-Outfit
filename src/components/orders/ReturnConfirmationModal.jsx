@@ -17,7 +17,7 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
     async function load() {
       const { data } = await supabase
         .from('order_items')
-        .select('id, quantity, item_type, inventory:inventory_item_id(item_code, subcategory, size, color, base_price, replacement_cost)')
+        .select('id, quantity, item_type, inventory:inventory_item_id(id, item_code, subcategory, size, color, base_price, replacement_cost)')
         .eq('order_id', order.id)
 
       setItems(data ?? [])
@@ -104,9 +104,9 @@ export default function ReturnConfirmationModal({ order, onClose, onCompleted })
 
         {/* Notas de salida (mostradas solo lectura) */}
         {order.delivery_notes && (
-          <div className="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-3 text-xs">
-            <p className="font-semibold text-amber-700">Notas de salida (entrega):</p>
-            <p className="mt-0.5 text-amber-800">{order.delivery_notes}</p>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+            <p className="font-semibold text-slate-600">Notas de salida:</p>
+            <p className="mt-0.5 text-slate-700">{order.delivery_notes}</p>
           </div>
         )}
 

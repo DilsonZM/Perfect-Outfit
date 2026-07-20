@@ -12,7 +12,7 @@ export default function OrderDetailModal({ order, onClose }) {
       const { data } = await supabase
         .from('order_items')
         .select(
-          'id, quantity, item_type, returned_ok, fine_amount, inventory:inventory_item_id(item_code, subcategory, size, color, base_price)',
+          'id, quantity, item_type, returned_ok, fine_amount, inventory:inventory_item_id(id, item_code, subcategory, size, color, base_price)',
         )
         .eq('order_id', order.id)
         .order('item_type')
@@ -99,17 +99,17 @@ export default function OrderDetailModal({ order, onClose }) {
 
           {/* Notas de entrega */}
           {order.delivery_notes && (
-            <div className="rounded-lg border-l-4 border-amber-400 bg-amber-50 p-3 text-xs">
-              <p className="font-semibold text-amber-700">Notas de salida:</p>
-              <p className="mt-0.5 text-amber-800">{order.delivery_notes}</p>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+              <p className="font-semibold text-slate-600">Notas de salida:</p>
+              <p className="mt-0.5 text-slate-700">{order.delivery_notes}</p>
             </div>
           )}
 
           {/* Notas de devolución */}
           {order.return_notes && (
-            <div className="rounded-lg border-l-4 border-green-400 bg-green-50 p-3 text-xs">
-              <p className="font-semibold text-green-700">Notas de recepción:</p>
-              <p className="mt-0.5 text-green-800">{order.return_notes}</p>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
+              <p className="font-semibold text-slate-600">Notas de recepción:</p>
+              <p className="mt-0.5 text-slate-700">{order.return_notes}</p>
             </div>
           )}
         </div>
