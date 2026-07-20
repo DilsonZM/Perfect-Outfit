@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, PlusCircle, Search, Trash2 } from 'lucide-react'
+import { Pencil, PlusCircle, Search, Trash2, Wrench } from 'lucide-react'
 import { supabase } from '../lib/supabaseClient'
 import { formatCOP } from '../lib/format'
 import { CATEGORIES, GENDER_LABELS } from '../lib/catalog'
@@ -76,6 +76,26 @@ export default function InventoryPage() {
       await showError('Error', error.message)
     } else {
       showToast('success', 'Estado actualizado')
+      load()
+    }
+  }
+
+  async function handleSetMaintenance(item) {
+    const confirmed = await confirmAction(
+      'Enviar a mantenimiento',
+      `¿Enviar <strong>${item.item_code}</strong> (${item.subcategory ?? item.category}) a <strong>Mantenimiento</strong>?`,
+      'Sí, enviar',
+    )
+    if (!confirmed) return
+
+    const { error } = await supabase
+      .from('inventory')
+      .update({ status: 'mantenimiento' })
+      .eq('id', item.id)
+    if (error) {
+      await showError('Error', error.message)
+    } else {
+      showToast('success', 'Enviado a mantenimiento')
       load()
     }
   }
@@ -212,6 +232,16 @@ export default function InventoryPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-1">
+                        {item.status !== 'mantenimiento' && item.status !== 'alquilado' && (
+                          <button
+                            onClick={() => handleSetMaintenance(item)}
+                            aria-label={`Enviar ${item.item_code} a mantenimiento`}
+                            title="Mantenimiento"
+                            className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-400"
+                          >
+                            <Wrench className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                        )}
                         <button
                           onClick={() => setModal({ item })}
                           aria-label={`Editar ${item.item_code}`}
