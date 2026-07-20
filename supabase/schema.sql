@@ -26,8 +26,10 @@ create table if not exists public.users (
 -- ------------------------------------------------------------
 create table if not exists public.inventory (
   id               uuid primary key default gen_random_uuid(),
-  item_code        text not null unique,          -- código interno, ej. TRJ-001
-  category         text not null,                 -- ej. Traje, Vestido, Zapato, Accesorio
+  item_code        text not null unique,          -- código interno, ej. SMO-001
+  category         text not null,                 -- grupo: Trajes y conjuntos, Calzado, Accesorios...
+  subcategory      text,                          -- ej. Smoking, Frac, Vestido de novia, Corbata
+  gender           text check (gender in ('hombre', 'mujer', 'niño', 'unisex')),
   size             text,                          -- ej. S, M, L, 42
   color            text,
   brand            text,
@@ -47,6 +49,8 @@ create table if not exists public.clients (
   phone       text,
   email       text,
   document_id text unique,                        -- cédula / documento de identidad
+  address     text,
+  birth_date  date,                               -- para calcular la edad
   preferences jsonb not null default '{}'::jsonb, -- ej. {"talla":"M","colores":["negro","azul"]}
   created_at  timestamptz not null default now()
 );
@@ -56,6 +60,7 @@ create table if not exists public.clients (
 -- ------------------------------------------------------------
 create table if not exists public.service_orders (
   id             uuid primary key default gen_random_uuid(),
+  folio          bigint generated always as identity unique, -- folio visible: PO-000001
   client_id      uuid not null references public.clients(id) on delete restrict,
   employee_id    uuid references public.users(id) on delete set null,
   total_amount   numeric(12,2) not null default 0 check (total_amount >= 0),
