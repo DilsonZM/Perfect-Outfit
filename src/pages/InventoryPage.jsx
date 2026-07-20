@@ -6,6 +6,7 @@ import { CATEGORIES, GENDER_LABELS } from '../lib/catalog'
 import { btnPrimaryCls, inputCls } from '../lib/styles'
 import StatusBadge from '../components/StatusBadge'
 import InventoryFormModal from '../components/inventory/InventoryFormModal'
+import Pagination from '../components/ui/Pagination'
 import ToggleSwitch from '../components/ui/ToggleSwitch'
 import { confirmAction, confirmDelete, showError, showToast } from '../lib/sweetalert'
 
@@ -18,12 +19,15 @@ const STATUS_LABELS = {
   extraviado: 'Extraviado',
 }
 
+const PAGE_SIZE = 20
+
 export default function InventoryPage() {
   const [items, setItems] = useState(null)
   const [error, setError] = useState(null)
   const [statusFilter, setStatusFilter] = useState('todos')
   const [categoryFilter, setCategoryFilter] = useState('todas')
   const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
   const [modal, setModal] = useState(null)
 
   async function load() {
@@ -57,6 +61,17 @@ export default function InventoryPage() {
       return true
     })
   }, [items, statusFilter, categoryFilter, search])
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const paged = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page],
+  )
+
+  // Resetear página al cambiar filtros
+  useEffect(() => {
+    setPage(1)
+  }, [statusFilter, categoryFilter, search])
 
   async function handleToggleStatus(item) {
     const isAvailable = item.status === 'disponible'
@@ -172,9 +187,11 @@ export default function InventoryPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar código, color, marca…"
-            className={inputCls + ' pl-9'}
+            className={inputCls + ' pl-9 w-56'}
           />
         </div>
+
+        <p className="text-xs text-slate-400">{filtered.length} resultados</p>
       </div>
 
       {error ? (
@@ -186,7 +203,8 @@ export default function InventoryPage() {
       ) : null}
 
       {filtered.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <>
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-400">
@@ -201,7 +219,7 @@ export default function InventoryPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((item) => {
+              {paged.map((item) => {
                 const isAvailable = item.status === 'disponible'
                 const isRented = item.status === 'alquilado'
                 const isLost = item.status === 'extraviado'
@@ -268,6 +286,9 @@ export default function InventoryPage() {
             </tbody>
           </table>
         </div>
+
+        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+        </>
       )}
 
       {items?.length > 0 && filtered.length === 0 && (
