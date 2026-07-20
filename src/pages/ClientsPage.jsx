@@ -5,7 +5,7 @@ import { calculateAge } from '../lib/format'
 import { btnPrimaryCls, inputCls } from '../lib/styles'
 import ClientFormModal from '../components/clients/ClientFormModal'
 import ClientOrdersModal from '../components/clients/ClientOrdersModal'
-import { confirmDelete, showError } from '../lib/sweetalert'
+import { confirmDelete, showError, showToast } from '../lib/sweetalert'
 
 export default function ClientsPage() {
   const [clients, setClients] = useState(null)
@@ -49,6 +49,7 @@ export default function ClientsPage() {
           : error.message,
       )
     } else {
+      showToast('success', 'Cliente eliminado')
       load()
     }
   }

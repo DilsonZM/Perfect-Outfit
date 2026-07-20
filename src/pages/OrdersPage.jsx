@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabaseClient'
 import { formatCOP, formatDateTime, formatFolio } from '../lib/format'
 import StatusBadge from '../components/StatusBadge'
 import OrderDetailModal from '../components/orders/OrderDetailModal'
-import { confirmAction, showError } from '../lib/sweetalert'
+import { confirmAction, showError, showToast } from '../lib/sweetalert'
 
 function displayStatus(order) {
   if (order.status === 'activa' && order.return_date && new Date(order.return_date) < new Date()) {
@@ -71,6 +71,7 @@ export default function OrdersPage() {
       setOrders((prev) =>
         prev.map((o) => (o.id === order.id ? { ...o, status: newStatus } : o)),
       )
+      showToast('success', `Orden ${newStatus === 'completada' ? 'completada' : 'cancelada'}`)
     } catch (err) {
       await showError('Error', err.message)
     } finally {

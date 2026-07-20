@@ -12,10 +12,7 @@ const base = {
   },
 }
 
-/**
- * Confirmación de eliminación con advertencia (admitir o cancelar).
- * Retorna `true` si el usuario confirmó.
- */
+/** Confirmación de eliminación con advertencia. Retorna `true` si el usuario confirmó. */
 export async function confirmDelete(name) {
   const result = await Swal.fire({
     ...base,
@@ -30,9 +27,7 @@ export async function confirmDelete(name) {
   return result.isConfirmed
 }
 
-/**
- * Confirmación genérica (pregunta sí / no).
- */
+/** Confirmación genérica (pregunta sí / no). */
 export async function confirmAction(title, html, confirmLabel = 'Confirmar') {
   const result = await Swal.fire({
     ...base,
@@ -47,9 +42,29 @@ export async function confirmAction(title, html, confirmLabel = 'Confirmar') {
   return result.isConfirmed
 }
 
-/**
- * Toast de error inesperado. Solo un botón "Entendido".
- */
+/** Confirmación pre-submit de formularios (crear, editar, generar). */
+const LABELS = {
+  create: { title: '¿Crear registro?', confirm: 'Sí, crear' },
+  update: { title: '¿Guardar cambios?', confirm: 'Sí, guardar' },
+  generate: { title: '¿Generar orden?', confirm: 'Sí, generar' },
+}
+
+export async function confirmSubmit(action, name) {
+  const l = LABELS[action] ?? { title: '¿Confirmar?', confirm: 'Confirmar' }
+  const result = await Swal.fire({
+    ...base,
+    title: l.title,
+    html: `<p>${name}</p>`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonText: l.confirm,
+    cancelButtonText: 'Cancelar',
+    reverseButtons: true,
+  })
+  return result.isConfirmed
+}
+
+/** Error con ícono y botón "Entendido". */
 export async function showError(title, text) {
   await Swal.fire({
     ...base,
@@ -58,4 +73,20 @@ export async function showError(title, text) {
     icon: 'error',
     confirmButtonText: 'Entendido',
   })
+}
+
+/** Toast de éxito (esquina superior derecha, auto-cierra 3s). */
+export function showToast(icon = 'success', title = 'Completado') {
+  const Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.onmouseenter = Swal.stopTimer
+      toast.onmouseleave = Swal.resumeTimer
+    },
+  })
+  Toast.fire({ icon, title, customClass: { popup: 'rounded-2xl shadow-xl' } })
 }

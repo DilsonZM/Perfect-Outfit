@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { btnPrimaryCls, btnSecondaryCls, inputCls, labelCls } from '../../lib/styles'
+import { confirmSubmit, showToast } from '../../lib/sweetalert'
 import Modal from '../ui/Modal'
 
 const EMPTY_FORM = {
@@ -61,6 +62,12 @@ export default function ClientFormModal({ client, onClose, onSaved }) {
     }
 
     setSaving(true)
+    const confirmed = await confirmSubmit(
+      isEdit ? 'update' : 'create',
+      `${isEdit ? 'Actualizar' : 'Crear'} <strong>${payload.full_name}</strong>`,
+    )
+    if (!confirmed) { setSaving(false); return }
+
     const { error } = isEdit
       ? await supabase.from('clients').update(payload).eq('id', client.id)
       : await supabase.from('clients').insert(payload)
@@ -71,6 +78,7 @@ export default function ClientFormModal({ client, onClose, onSaved }) {
         error.code === '23505' ? 'Ya existe un cliente con ese documento.' : error.message,
       )
     } else {
+      showToast('success', isEdit ? 'Cliente actualizado' : 'Cliente creado')
       onSaved()
     }
   }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { CATEGORIES, GENDERS, GENDER_LABELS, INVENTORY_STATUSES } from '../../lib/catalog'
 import { btnPrimaryCls, btnSecondaryCls, inputCls, labelCls } from '../../lib/styles'
+import { confirmSubmit, showToast } from '../../lib/sweetalert'
 import Modal from '../ui/Modal'
 
 const EMPTY_FORM = {
@@ -49,6 +50,12 @@ export default function InventoryFormModal({ item, onClose, onSaved }) {
     }
 
     setSaving(true)
+    const confirmed = await confirmSubmit(
+      isEdit ? 'update' : 'create',
+      `${isEdit ? 'Actualizar' : 'Crear'} <strong>${payload.item_code}</strong> (${form.subcategory || form.category})`,
+    )
+    if (!confirmed) { setSaving(false); return }
+
     const { error } = isEdit
       ? await supabase.from('inventory').update(payload).eq('id', item.id)
       : await supabase.from('inventory').insert(payload)
@@ -59,6 +66,7 @@ export default function InventoryFormModal({ item, onClose, onSaved }) {
         error.code === '23505' ? 'Ya existe una prenda con ese código.' : error.message,
       )
     } else {
+      showToast('success', isEdit ? 'Prenda actualizada' : 'Prenda creada')
       onSaved()
     }
   }

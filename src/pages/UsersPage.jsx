@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../context/useAuth'
 import { formatDateTime } from '../lib/format'
 import { btnPrimaryCls, btnSecondaryCls, inputCls, labelCls } from '../lib/styles'
+import { confirmSubmit, showToast } from '../lib/sweetalert'
 import StatusBadge from '../components/StatusBadge'
 import Modal from '../components/ui/Modal'
 
@@ -38,6 +39,12 @@ export default function UsersPage() {
       return setFormError('Completa todos los campos.')
     }
     setSaving(true)
+    const confirmed = await confirmSubmit(
+      'create',
+      `Crear usuario <strong>${form.full_name.trim()}</strong> (${form.email.trim().toLowerCase()})`,
+    )
+    if (!confirmed) { setSaving(false); return }
+
     const { error } = await supabase.from('users').insert({
       full_name: form.full_name.trim(),
       email: form.email.trim().toLowerCase(),
@@ -50,6 +57,7 @@ export default function UsersPage() {
         error.code === '23505' ? 'Ya existe un usuario con ese correo.' : error.message,
       )
     } else {
+      showToast('success', 'Empleado creado')
       setModalOpen(false)
       setForm(EMPTY_FORM)
       load()

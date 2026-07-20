@@ -7,6 +7,7 @@ import ClientPanel from '../components/orders/ClientPanel'
 import ItemsEditor from '../components/orders/ItemsEditor'
 import OrderDetailModal from '../components/orders/OrderDetailModal'
 import { newLine } from '../components/orders/orderLine'
+import { confirmSubmit } from '../lib/sweetalert'
 
 const PAYMENT_METHODS = ['efectivo', 'tarjeta', 'transferencia']
 
@@ -128,6 +129,13 @@ export default function OrderNewPage() {
     if (!deliveryDate || !returnDate) return setError('Define las fechas de entrega y devolución.')
     if (new Date(returnDate) <= new Date(deliveryDate))
       return setError('La fecha de devolución debe ser posterior a la de entrega.')
+
+    const clientName = clients.find((c) => c.id === clientId)?.full_name ?? 'el cliente'
+    const confirmed = await confirmSubmit(
+      'generate',
+      `Crear orden para <strong>${clientName}</strong> con ${validLines.length} ítem(s) por <strong>${formatCOP(total)}</strong>.`,
+    )
+    if (!confirmed) return
 
     setSubmitting(true)
     try {

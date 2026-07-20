@@ -7,7 +7,7 @@ import { btnPrimaryCls, inputCls } from '../lib/styles'
 import StatusBadge from '../components/StatusBadge'
 import InventoryFormModal from '../components/inventory/InventoryFormModal'
 import ToggleSwitch from '../components/ui/ToggleSwitch'
-import { confirmAction, confirmDelete, showError } from '../lib/sweetalert'
+import { confirmAction, confirmDelete, showError, showToast } from '../lib/sweetalert'
 
 const STATUS_TABS = ['todos', 'disponible', 'alquilado', 'lavanderia', 'mantenimiento']
 
@@ -75,6 +75,7 @@ export default function InventoryPage() {
     if (error) {
       await showError('Error', error.message)
     } else {
+      showToast('success', 'Estado actualizado')
       load()
     }
   }
@@ -94,6 +95,7 @@ export default function InventoryPage() {
           : error.message,
       )
     } else {
+      showToast('success', 'Prenda eliminada')
       load()
     }
   }
