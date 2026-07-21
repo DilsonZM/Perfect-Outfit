@@ -165,8 +165,6 @@ export default function InventoryPage() {
           />
         </div>
 
-        <span className="shrink-0 text-xs text-slate-400">{filtered.length} resultados</span>
-
         <div className="flex shrink-0 gap-1 rounded-lg border border-slate-200 bg-white p-1">
           {STATUS_TABS.map((s) => (
             <button
@@ -186,7 +184,7 @@ export default function InventoryPage() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className={inputCls + ' w-48 shrink-0'}
+          className={inputCls + ' w-40 shrink-0'}
         >
           <option value="todas">Todas las categorías</option>
           {CATEGORIES.map((c) => (
