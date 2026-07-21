@@ -153,19 +153,10 @@ export default function InventoryPage() {
         </button>
       </header>
 
-      {/* Filtros — una sola línea */}
-      <div className="mb-4 flex items-center gap-2 overflow-x-auto">
-        <div className="relative shrink-0">
-          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar código, color, marca…"
-            className={inputCls + ' pl-9 w-56'}
-          />
-        </div>
-
-        <div className="flex shrink-0 gap-1 rounded-lg border border-slate-200 bg-white p-1">
+      {/* Filtros — 2 líneas */}
+      <div className="mb-4 space-y-2">
+        {/* Línea 1: tabs de estado */}
+        <div className="flex gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-white p-1">
           {STATUS_TABS.map((s) => (
             <button
               key={s}
@@ -181,18 +172,30 @@ export default function InventoryPage() {
           ))}
         </div>
 
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className={inputCls + ' w-56 shrink-0'}
-        >
-          <option value="todas">Todas las categorías</option>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+        {/* Línea 2: buscador + categoría */}
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar código, color, marca…"
+              className={inputCls + ' pl-9 w-56'}
+            />
+          </div>
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className={inputCls + ' w-48'}
+          >
+            <option value="todas">Todas las categorías</option>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {error ? (
