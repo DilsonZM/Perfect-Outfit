@@ -153,29 +153,26 @@ export default function InventoryPage() {
         </button>
       </header>
 
-      {/* Filtros */}
-      <div className="mb-4 space-y-2">
-        {/* Buscador */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar código, color, marca…"
-              className={inputCls + ' pl-9 w-64'}
-            />
-          </div>
-          <p className="text-xs text-slate-400">{filtered.length} resultados</p>
+      {/* Filtros — una sola línea */}
+      <div className="mb-4 flex items-center gap-2 overflow-x-auto">
+        <div className="relative shrink-0">
+          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar código, color, marca…"
+            className={inputCls + ' pl-9 w-56'}
+          />
         </div>
 
-        {/* Tabs de estado */}
-        <div className="flex gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-white p-1">
+        <span className="shrink-0 text-xs text-slate-400">{filtered.length} resultados</span>
+
+        <div className="flex shrink-0 gap-1 rounded-lg border border-slate-200 bg-white p-1">
           {STATUS_TABS.map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-colors ${
+              className={`whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium capitalize transition-colors ${
                 statusFilter === s
                   ? 'bg-indigo-600 text-white'
                   : 'text-slate-600 hover:bg-slate-100'
@@ -186,11 +183,10 @@ export default function InventoryPage() {
           ))}
         </div>
 
-        {/* Categoría */}
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className={inputCls + ' w-56'}
+          className={inputCls + ' w-48 shrink-0'}
         >
           <option value="todas">Todas las categorías</option>
           {CATEGORIES.map((c) => (
