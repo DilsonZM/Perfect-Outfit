@@ -12,15 +12,6 @@ import { confirmAction, confirmDelete, showError, showToast } from '../lib/sweet
 
 const STATUS_TABS = ['todos', 'disponible', 'alquilado', 'lavanderia', 'mantenimiento', 'extraviado']
 
-const STATUS_SHORT = {
-  todos: 'Todos',
-  disponible: 'Disp',
-  alquilado: 'Alq',
-  lavanderia: 'Lav',
-  mantenimiento: 'Man',
-  extraviado: 'Ext',
-}
-
 const STATUS_LABELS = {
   disponible: 'Disponible',
   lavanderia: 'Lavandería',
@@ -165,46 +156,49 @@ export default function InventoryPage() {
         </button>
       </header>
 
-      {/* Filtros — una línea */}
-      <div className="mb-4 flex items-center gap-2">
-        {/* Tabs — scroll independiente */}
-        <div className="flex gap-0.5 rounded-lg border border-slate-200 bg-white p-1">
+      {/* Filtros */}
+      <div className="mb-4 flex flex-row items-center justify-between gap-4 w-full">
+        {/* Tabs de estado */}
+        <div className="flex shrink-0 gap-1 rounded-lg border border-slate-200 bg-white p-1">
           {STATUS_TABS.map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10px] font-medium capitalize transition-colors ${
+              className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
                 statusFilter === s
                   ? 'bg-indigo-600 text-white'
                   : 'text-slate-600 hover:bg-slate-100'
               }`}
             >
-              {STATUS_SHORT[s]} {counts[s]}
+              {s} ({counts[s]})
             </button>
           ))}
         </div>
 
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className={inputCls + ' w-28 shrink-0'}
-        >
-          <option value="todas">Todas</option>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
+        {/* Select categoría + buscador agrupados a la derecha */}
+        <div className="flex items-center gap-3 shrink-0">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className={inputCls + ' w-64'}
+          >
+            <option value="todas">Todas las categorías</option>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
 
-        <div className="relative shrink-0">
-          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar…"
-            className={inputCls + ' pl-9 w-36'}
-          />
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar código, color, marca…"
+              className={inputCls + ' pl-9 w-56'}
+            />
+          </div>
         </div>
       </div>
 
