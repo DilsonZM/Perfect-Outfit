@@ -184,7 +184,7 @@ export default function InventoryPage() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className={inputCls + ' w-40 shrink-0'}
+          className={inputCls + ' w-56 shrink-0'}
         >
           <option value="todas">Todas las categorías</option>
           {CATEGORIES.map((c) => (
