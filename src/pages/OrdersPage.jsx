@@ -54,7 +54,7 @@ export default function OrdersPage() {
     return orders.filter((o) => {
       // Búsqueda por folio o nombre de cliente
       if (q) {
-        const folio = `PO-${o.folio}`.toLowerCase()
+        const folio = formatFolio(o.folio).toLowerCase()
         const name = (o.clients?.full_name ?? '').toLowerCase()
         if (!folio.includes(q) && !name.includes(q)) return false
       }
