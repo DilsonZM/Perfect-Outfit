@@ -154,7 +154,7 @@ export default function InventoryPage() {
       </header>
 
       {/* Filtros */}
-      <div className="mb-4 space-y-3">
+      <div className="mb-4 space-y-2">
         {/* Buscador */}
         <div className="flex items-center gap-3">
           <div className="relative">
