@@ -170,12 +170,12 @@ export default function InventoryPage() {
         </div>
 
         {/* Tabs de estado */}
-        <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1">
+        <div className="flex gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-white p-1">
           {STATUS_TABS.map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
-              className={`rounded-md px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
+              className={`whitespace-nowrap rounded-md px-2.5 py-1 text-xs font-medium capitalize transition-colors ${
                 statusFilter === s
                   ? 'bg-indigo-600 text-white'
                   : 'text-slate-600 hover:bg-slate-100'
@@ -190,7 +190,7 @@ export default function InventoryPage() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className={inputCls + ' w-auto'}
+          className={inputCls + ' w-56'}
         >
           <option value="todas">Todas las categorías</option>
           {CATEGORIES.map((c) => (
