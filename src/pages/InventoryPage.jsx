@@ -153,7 +153,23 @@ export default function InventoryPage() {
         </button>
       </header>
 
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+      {/* Filtros */}
+      <div className="mb-4 space-y-3">
+        {/* Buscador */}
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar código, color, marca…"
+              className={inputCls + ' pl-9 w-64'}
+            />
+          </div>
+          <p className="text-xs text-slate-400">{filtered.length} resultados</p>
+        </div>
+
+        {/* Tabs de estado */}
         <div className="flex flex-wrap gap-1 rounded-lg border border-slate-200 bg-white p-1">
           {STATUS_TABS.map((s) => (
             <button
@@ -169,6 +185,8 @@ export default function InventoryPage() {
             </button>
           ))}
         </div>
+
+        {/* Categoría */}
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
@@ -181,17 +199,6 @@ export default function InventoryPage() {
             </option>
           ))}
         </select>
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar código, color, marca…"
-            className={inputCls + ' pl-9 w-56'}
-          />
-        </div>
-
-        <p className="text-xs text-slate-400">{filtered.length} resultados</p>
       </div>
 
       {error ? (
